@@ -1,4 +1,5 @@
 vim.keymap.set('n', '<leader>fg', require('telescope.builtin').live_grep, { desc = 'Telescope Live Grep' })
+vim.keymap.set('n', '<leader>ff', require('telescope.builtin').find_files, { desc = 'Telescope Find Files' })
 vim.keymap.set('n', '<leader>fb', require('telescope.builtin').buffers, { desc = 'Telescope Buffers' })
 vim.keymap.set('n', '<leader>fh', require('telescope.builtin').help_tags, { desc = 'Telescope Help Tags' })
 vim.keymap.set('n', '<leader>fr', require('telescope.builtin').oldfiles, { desc = 'Telescope Recent Files' })
