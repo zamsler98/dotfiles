@@ -86,3 +86,7 @@ vim.keymap.set('v', '<C-/>', 'gc', { noremap = false, desc = 'Toggle comment sel
 
 -- Toggle file tree view
 vim.keymap.set('n', '<leader>e', ':NvimTreeToggle<CR>', { noremap = true, desc = 'Toggle file tree' })
+
+-- Tabs
+vim.keymap.set('n', '<leader>tn', ':tabnew<CR>', { noremap = true, desc = 'New tab' })
+vim.keymap.set('n', '<leader>tc', ':tabclose<CR>', { noremap = true, desc = 'Close tab' })
