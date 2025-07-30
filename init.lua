@@ -11,6 +11,13 @@ vim.opt.tabstop = 4           -- Number of spaces tabs count for
 vim.opt.softtabstop = 4       -- Number of spaces for editing operations
 vim.opt.smartindent = true
 
+-- Line wrapping options
+vim.opt.wrap = true           -- Enable line wrapping
+vim.opt.linebreak = true      -- Wrap at convenient points (not in the middle of words)
+vim.opt.showbreak = "↪ "      -- Show this symbol at the start of wrapped lines
+vim.opt.breakindent = true    -- Indent wrapped lines to match line start
+
+
 
 
 -- Bootstrap lazy.nvim
