@@ -139,3 +139,10 @@ harpoon:extend({
     end, { buffer = cx.bufnr })
   end,
 })
+
+
+-- Code Companion
+vim.keymap.set({'n', 'v'}, '<leader>aa', '<cmd>CodeCompanionActions<CR>', {noremap = true, desc = "CodeCompanion Actions"})
+vim.keymap.set({'n', 'v'}, '<leader>ac', '<cmd>CodeCompanionChat Toggle<CR>', {noremap = true, desc = "CodeCompanion Chat Toggle"})
+vim.keymap.set('v', '<leader>ad', '<cmd>CodeCompanionChat Add<CR>', {noremap = true, desc = "CodeCompanion add to Chat"})
+
