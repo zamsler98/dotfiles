@@ -44,6 +44,8 @@ vim.cmd.colorscheme "catppuccin-macchiato"
 
 require("keymaps")
 
+local harpoon = require('harpoon')
+harpoon:setup({})
 
 vim.lsp.config("roslyn_ls", {
   on_attach = function() 
