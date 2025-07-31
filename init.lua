@@ -40,7 +40,7 @@ vim.opt.rtp:prepend(lazypath)
 -- Setup lazy.nvim
 require("lazy").setup("plugins")
 
-vim.cmd.colorscheme "gruvbox"
+vim.cmd.colorscheme "catppuccin-macchiato"
 
 require("keymaps")
 
