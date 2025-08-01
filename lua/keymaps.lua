@@ -24,6 +24,10 @@ vim.keymap.set('i', '<C-s>', '<Esc>:w<CR>', { noremap = true, desc = 'Save file 
 -- Remap capital Y to yank to end of line
 vim.keymap.set('n', 'Y', 'y$', { noremap = true, desc = 'Yank to end of line' })
 
+-- Toggle relative line numbers
+vim.keymap.set('n', '<leader>ur', function()
+  vim.opt.relativenumber = not vim.opt.relativenumber:get()
+end, { desc = 'Toggle relative line numbers' })
 vim.keymap.set('n', '<C-h>', '<C-w>h', { desc = 'Move to left window' })
 vim.keymap.set('n', '<C-j>', '<C-w>j', { desc = 'Move to below window' })
 vim.keymap.set('n', '<C-k>', '<C-w>k', { desc = 'Move to above window' })
