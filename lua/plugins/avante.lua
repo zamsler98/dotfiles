@@ -16,7 +16,8 @@ return {
     auto_suggestions_provider = "copilot",
     providers = {
         copilot = {
-            allow_insecure = true
+            allow_insecure = true,
+            model = "gpt-5"
         }
     --   claude = {
     --     endpoint = "https://api.anthropic.com",
