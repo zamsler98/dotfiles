@@ -12,13 +12,16 @@ return {
   opts = {
     -- add any opts here
     -- for example
+    selector = {
+        provider = "telescope"
+    },
     provider = "copilot",
     auto_suggestions_provider = "copilot",
     providers = {
         copilot = {
             allow_insecure = true,
-            model = "gpt-5"
-        }
+            model = "GPT-5"
+        },
     --   claude = {
     --     endpoint = "https://api.anthropic.com",
     --     model = "claude-sonnet-4-20250514",
