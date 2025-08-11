@@ -7,6 +7,25 @@ vim.keymap.set('n', '<leader>fc', require('telescope.builtin').commands, { desc 
 vim.keymap.set('n', '<leader>fm', require('telescope.builtin').marks, { desc = 'Telescope Marks' })
 vim.keymap.set('n', '<leader>fk', require('telescope.builtin').keymaps, { desc = 'Telescope Keymaps' })
 
+-- Load the module
+local search_dir = require("custom.search_dir")
+
+-- Set user command
+vim.api.nvim_create_user_command("SearchDir", search_dir.set_dir, {})
+
+-- Keymap to grep in the selected dir
+vim.keymap.set("n", "<leader>fe", search_dir.grep_in_dir, {
+    desc = "Live Grep in Selected Directory",
+})
+
+vim.keymap.set("n", "<leader>fd", function()
+    require("telescope.builtin").find_files({
+        cwd = require("custom.search_dir").search_dir,
+        prompt_title = "Find Files in " .. require("custom.search_dir").search_dir,
+    })
+end, { desc = "Find Files in Selected Directory" })
+
+
 -- Indent line right/left in normal mode
 vim.keymap.set('n', '<Tab>', '>>', { noremap = true, desc = 'Indent line right' })
 vim.keymap.set('n', '<S-Tab>', '<<', { noremap = true, desc = 'Indent line left' })
