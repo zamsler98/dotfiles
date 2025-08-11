@@ -17,6 +17,7 @@ return {
     },
     provider = "copilot",
     auto_suggestions_provider = "copilot",
+    hints = { enabled = false },
     providers = {
         copilot = {
             allow_insecure = true,
