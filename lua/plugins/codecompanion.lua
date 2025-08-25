@@ -5,6 +5,11 @@ return {
         "nvim-treesitter/nvim-treesitter",
     },
     opts = {
+        adapters = {
+            opts = {
+                allow_insecure = true
+            }
+        },
         strategies = {
             chat = { adapter = "copilot" },
             inline = { adapter = "copilot" },
