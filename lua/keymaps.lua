@@ -198,11 +198,10 @@ harpoon:extend({
 
 -- Code Companion
 vim.keymap.set({'n', 'v'}, '<leader>aa', '<cmd>CodeCompanionActions<CR>', {noremap = true, desc = "CodeCompanion Actions"})
-vim.keymap.set({'n', 'v'}, '<leader>ac', '<cmd>CodeCompanionChat Toggle<CR>', {noremap = true, desc = "CodeCompanion Chat Toggle"})
-vim.keymap.set('v', '<leader>ad', '<cmd>CodeCompanionChat Add<CR>', {noremap = true, desc = "CodeCompanion add to Chat"})
-
--- Open CodeCompanion Chat in a floating window
-vim.keymap.set('n', '<leader>cc', function()
-  vim.cmd('CodeCompanionChat Float')
-end, { noremap = true, desc = 'CodeCompanion Chat (Floating)' })
+vim.keymap.set({'n', 'v'}, '<leader>ct', '<cmd>CodeCompanionChat Toggle<CR>', {noremap = true, desc = "CodeCompanion Chat Toggle"})
+vim.keymap.set('v', '<leader>cp', '<cmd>CodeCompanionChat Add<CR>', {noremap = true, desc = "CodeCompanion add to Chat"})
+vim.keymap.set('n', '<leader>cc', '<cmd>CodeCompanionChat<CR>', { noremap = true, desc = 'CodeCompanion Chat (Floating)' })
+vim.keymap.set('n', '<leader>ca', function() 
+    require("codecompanion").prompt("agent")
+end, { noremap = true, silent = true})
 

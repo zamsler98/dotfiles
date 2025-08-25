@@ -5,6 +5,14 @@ return {
         "nvim-treesitter/nvim-treesitter",
     },
     opts = {
+        display = {
+            chat = {
+                icons = {
+                    chat_context = "📎️",
+                },
+                fold_context = true,
+            }
+        },
         adapters = {
             opts = {
                 allow_insecure = true
@@ -19,6 +27,7 @@ return {
                 strategy = "chat",
                 description = "Auto add buffer and edit file",
                 opts = {
+                    short_name = "agent",
                     stop_context_insertion = false
                 },
                 prompts = {
@@ -32,7 +41,10 @@ return {
                     },
                     {
                         role = "user",
-                        content = "#{buffer}{pin} @{insert_edit_into_file}\n"
+                        content = [[
+#{buffer}{pin} @{insert_edit_into_file}
+ 
+]]
                     }
                 },
             }
