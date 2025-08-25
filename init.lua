@@ -63,3 +63,11 @@ vim.lsp.config("roslyn_ls", {
     -- Add other options here
 })
 
+vim.api.nvim_create_augroup("AutoFormat", {})
+vim.api.nvim_create_autocmd("BufWritePre", {
+  pattern = "*",
+  group = "AutoFormat",
+  callback = function()
+    vim.lsp.buf.format({ async = false })
+  end,
+})
