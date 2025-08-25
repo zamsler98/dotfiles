@@ -10,6 +10,7 @@ return {
                 icons = {
                     chat_context = "📎️",
                 },
+                start_in_insert_mode = true,
                 fold_context = true,
             }
         },

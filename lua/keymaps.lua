@@ -206,3 +206,6 @@ vim.keymap.set('n', '<leader>ca', function()
 end, { noremap = true, silent = true})
 vim.keymap.set({'v'}, '<leader>cd', '<cmd>CodeCompanion /func_doc<CR>', {noremap = true, desc = "CodeCompanion document function"})
 
+-- CodeCompanion Inline Prompt
+vim.keymap.set({'n', 'v'}, '<leader>ci', ':CodeCompanion ', { noremap = true, desc = 'CodeCompanion Inline Prompt' })
+
