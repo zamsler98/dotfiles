@@ -47,7 +47,30 @@ return {
 ]]
                     }
                 },
+            },
+            ["Method Comment"] = {
+                strategy = "inline",
+                description = "Auto add documentation comment to function",
+                opts = {
+                    placement = "before",
+                    short_name = "func_doc",
+                },
+                prompts = {
+                    {
+                        role = "user",
+                        content = function(context) 
+                              return string.format([[
+Write a documentation comment for the following method, using the standard documentation style for its programming language (e.g., XML documentation for C#, Javadoc for Java, docstrings for Python, etc.).
+Describe what the method does, its parameters, return value, and any exceptions it may throw.
+Output only the documentation comment, not the method itself.
+Do not include remarks, examples, or any optional sections—only the standard required tags for the language.
+The programming language for this is %s.
+                              ]], context.filetype)
+                        end,
+                    }
+                }
             }
+
         }
     },
 }
