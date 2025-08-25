@@ -204,4 +204,5 @@ vim.keymap.set('n', '<leader>cc', '<cmd>CodeCompanionChat<CR>', { noremap = true
 vim.keymap.set('n', '<leader>ca', function() 
     require("codecompanion").prompt("agent")
 end, { noremap = true, silent = true})
+vim.keymap.set({'v'}, '<leader>cd', '<cmd>CodeCompanion /func_doc<CR>', {noremap = true, desc = "CodeCompanion document function"})
 
