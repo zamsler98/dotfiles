@@ -4,6 +4,7 @@ vim.opt.relativenumber = true
 vim.opt.mouse = 'a'
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
+vim.opt.colorcolumn = "101"
 
 -- Use spaces instead of tabs, set tab width to 4
 vim.opt.expandtab = true      -- Use spaces instead of tabs

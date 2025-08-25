@@ -60,6 +60,35 @@ vim.keymap.set('n', '<leader>bn', ':bnext<CR>', { noremap = true, desc = 'Next b
 vim.keymap.set('n', '<leader>bp', ':bprevious<CR>', { noremap = true, desc = 'Previous buffer' })
 vim.keymap.set('n', '<leader>bd', ':bdelete<CR>', { noremap = true, desc = 'Delete buffer' })
 
+-- Switch buffers in splits
+vim.keymap.set('n', '<leader>bs', '<C-w>w:bnext<CR>', { noremap = true, desc = 'Switch buffers in splits' })
+
+-- Split management
+vim.keymap.set('n', '<leader>sv', ':vsplit<CR>', { noremap = true, desc = 'Vertical split' })
+vim.keymap.set('n', '<leader>sh', ':split<CR>', { noremap = true, desc = 'Horizontal split' })
+vim.keymap.set('n', '<leader>q', ':close<CR>', { noremap = true, desc = 'Close split' })
+
+-- LSP
+vim.keymap.set('n', 'gd', vim.lsp.buf.definition, { buffer = bufnr, desc = 'Go to definition' })
+vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, { buffer = bufnr, desc = 'Go to declaration' })
+vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, { buffer = bufnr, desc = 'Go to implementation' })
+vim.keymap.set('n', 'gr', vim.lsp.buf.references, { buffer = bufnr, desc = 'Go to references' })
+vim.keymap.set('n', 'K', vim.lsp.buf.hover, { buffer = bufnr, desc = 'Hover' })
+vim.keymap.set('n', 'gh', vim.lsp.buf.definition, { buffer = bufnr, desc = 'Hover definition' }) 
+vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, { buffer = bufnr, desc = 'Rename' })
+vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, { buffer = bufnr, desc = 'Code action' })
+vim.keymap.set('n', 'gh', vim.lsp.buf.definition, { buffer = bufnr, desc = 'Hover definition' }) 
+vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, { buffer = bufnr, desc = 'Rename' })
+vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, { buffer = bufnr, desc = 'Code action' })
+vim.keymap.set('n', 'gh', vim.lsp.buf.definition, { buffer = bufnr, desc = 'Hover definition' }) 
+vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, { buffer = bufnr, desc = 'Rename' })
+vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, { buffer = bufnr, desc = 'Code action' })
+
+-- Buffer navigation
+vim.keymap.set('n', '<leader>bn', ':bnext<CR>', { noremap = true, desc = 'Next buffer' })
+vim.keymap.set('n', '<leader>bp', ':bprevious<CR>', { noremap = true, desc = 'Previous buffer' })
+vim.keymap.set('n', '<leader>bd', ':bdelete<CR>', { noremap = true, desc = 'Delete buffer' })
+
 -- Split management
 vim.keymap.set('n', '<leader>sv', ':vsplit<CR>', { noremap = true, desc = 'Vertical split' })
 vim.keymap.set('n', '<leader>sh', ':split<CR>', { noremap = true, desc = 'Horizontal split' })
@@ -142,6 +171,8 @@ vim.keymap.set('n', '<leader>hl', function() harpoon.ui:toggle_quick_menu(harpoo
 vim.keymap.set('n', '<leader>hx', function() harpoon:list():add() end, { desc = 'Harpoon: Mark file' })
 vim.keymap.set('n', '<leader>hn', function() harpoon:list():next() end, { desc = 'Harpoon: Next file' })
 vim.keymap.set('n', '<leader>hp', function() harpoon:list():prev() end, { desc = 'Harpoon: Previous file' })
+
+local harpoon = require('harpoon')
 harpoon:extend({
   UI_CREATE = function(cx)
     for i = 1, 9 do
@@ -163,3 +194,15 @@ harpoon:extend({
     end, { buffer = cx.bufnr })
   end,
 })
+
+
+-- Code Companion
+vim.keymap.set({'n', 'v'}, '<leader>aa', '<cmd>CodeCompanionActions<CR>', {noremap = true, desc = "CodeCompanion Actions"})
+vim.keymap.set({'n', 'v'}, '<leader>ac', '<cmd>CodeCompanionChat Toggle<CR>', {noremap = true, desc = "CodeCompanion Chat Toggle"})
+vim.keymap.set('v', '<leader>ad', '<cmd>CodeCompanionChat Add<CR>', {noremap = true, desc = "CodeCompanion add to Chat"})
+
+-- Open CodeCompanion Chat in a floating window
+vim.keymap.set('n', '<leader>cc', function()
+  vim.cmd('CodeCompanionChat Float')
+end, { noremap = true, desc = 'CodeCompanion Chat (Floating)' })
+
