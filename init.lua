@@ -26,3 +26,5 @@ require("config.lazy")
 require("config.keymaps")
 
 vim.cmd("colorscheme gruvbox")
+
+vim.lsp.enable('roslyn_ls')
