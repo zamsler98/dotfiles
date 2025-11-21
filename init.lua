@@ -22,6 +22,9 @@ vim.opt.breakindent = true    -- Indent wrapped lines to match line start
 
 vim.opt.cursorline = true
 
+-- Make sure Neovim sees ya
+vim.env.PATH = vim.env.PATH .. ":" .. os.getenv("HOME") .. "/.local/bin" .. ":/snap/bin"
+
 require("config.lazy")
 require("config.keymaps")
 
