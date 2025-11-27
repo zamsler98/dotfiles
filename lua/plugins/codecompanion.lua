@@ -12,6 +12,21 @@ return {
             display = {
                 chat = { border = "rounded" },
             },
+            memory = {
+                default = {
+                    description = "Default memory group for all chats",
+                    files = {
+                        "CopilotInstructions.md",
+                        -- Add other default files here if needed
+                    },
+                },
+                opts = {
+                    chat = {
+                        enabled = true,
+                        default_memory = "default",
+                    },
+                },
+            },
         })
     end
 }

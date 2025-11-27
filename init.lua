@@ -25,6 +25,7 @@ vim.opt.cursorline = true
 
 -- Make sure Neovim sees ya
 vim.env.PATH = vim.env.PATH .. ":" .. os.getenv("HOME") .. "/.local/bin" .. ":/snap/bin"
+vim.env.PATH = vim.env.PATH .. ':/home/zamsl/.nvm/versions/node/v24.11.1/bin'
 
 require("config.lazy")
 require("config.keymaps")

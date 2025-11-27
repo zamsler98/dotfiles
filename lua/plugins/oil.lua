@@ -37,9 +37,6 @@ return {
   dependencies = { "nvim-tree/nvim-web-devicons" },
 
   keys = {
-    -- Open Oil in current directory
-    { "-", "<cmd>Oil<CR>", desc = "Open parent directory (oil)" },
-    -- Or open Oil in a floating window
     { "<leader>oo", function() require("oil").open_float() end, desc = "Open Oil (float)" },
   },
 } 

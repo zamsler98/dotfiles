@@ -20,7 +20,7 @@ return {
 
   keys = {
     -- Open Yazi in the current directory
-    { "<leader>yy", "<cmd>Yazi<cr>", desc = "Open Yazi" },
+    { "-", "<cmd>Yazi<cr>", desc = "Open Yazi" },
     { "<leader>yh", "<cmd>Yazi cwd<cr>", desc = "Open Yazi" },
   },
 }
