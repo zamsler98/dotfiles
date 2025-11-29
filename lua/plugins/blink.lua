@@ -6,6 +6,9 @@ return {
         require("blink.cmp").setup({
             keymap = {
                 preset = "default", -- standard mappings
+                ['<CR>'] = { "accept"} ,
+                ['<C-k>'] = { "select_prev"},
+                ['<C-j>'] = { "select_next"},
             },
             completion = {
                 menu = {

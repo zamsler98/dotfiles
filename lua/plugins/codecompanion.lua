@@ -12,7 +12,7 @@ return {
             display = {
                 chat = { 
                     border = "rounded" ,
-                },
+                }
             },
             memory = {
                 default = {
