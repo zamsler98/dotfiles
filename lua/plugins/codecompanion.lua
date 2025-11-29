@@ -10,7 +10,9 @@ return {
             },
             -- Optionally configure display, logging, etc.
             display = {
-                chat = { border = "rounded" },
+                chat = { 
+                    border = "rounded" ,
+                },
             },
             memory = {
                 default = {

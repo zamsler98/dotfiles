@@ -57,3 +57,27 @@ vim.keymap.set('n', '<leader>p', '"+p', { noremap = true, desc = 'Paste from cli
 vim.keymap.set('n', '<leader>P', '"+P', { noremap = true, desc = 'Paste before from clipboard' })
 vim.keymap.set('v', '<leader>p', '"+p', { noremap = true, desc = 'Paste from clipboard' })
 vim.keymap.set('v', '<leader>P', '"+P', { noremap = true, desc = 'Paste before from clipboard' })
+
+vim.keymap.set({ "n", "v" }, "<leader>ca", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
+vim.keymap.set({ "n", "v" }, "<leader>t", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true })
+vim.keymap.set({ "n", "v" }, "<leader>cn", "<cmd>CodeCompanionChat<cr>", { noremap = true, silent = true })
+vim.keymap.set({ "n", "v" }, "<leader>ct", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true })
+vim.keymap.set({ "n", "v" }, '<leader>cs', function()
+  require("codecompanion").toggle({
+    window_opts = {
+      layout = "vertical",
+    }
+  })
+end, { noremap = true, silent = true })
+vim.keymap.set({ "n", "v" }, '<leader>cf', function()
+  require("codecompanion").toggle({
+    window_opts = {
+      layout = "float",
+      width = 0.8,
+    }
+  })
+end, { noremap = true, silent = true })
+vim.keymap.set("v", "ga", "<cmd>CodeCompanionChat Add<cr>", { noremap = true, silent = true })
+
+-- Expand 'cc' into 'CodeCompanion' in the command line
+vim.cmd([[cab cc CodeCompanion]])

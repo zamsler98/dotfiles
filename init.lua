@@ -33,3 +33,7 @@ require("config.keymaps")
 vim.cmd("colorscheme gruvbox")
 
 vim.lsp.enable('roslyn_ls')
+
+vim.cmd [[highlight! link NormalFloat Normal]]
+vim.cmd [[highlight! link FloatBorder Normal]]
+
