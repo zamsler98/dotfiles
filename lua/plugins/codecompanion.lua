@@ -18,7 +18,7 @@ return {
                 default = {
                     description = "Default memory group for all chats",
                     files = {
-                        "CopilotInstructions.md",
+                        ".github/copilot_instructions.md",
                         -- Add other default files here if needed
                     },
                 },
