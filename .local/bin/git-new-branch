@@ -1,0 +1,83 @@
+
+#!/usr/bin/env bash
+
+
+# Ensure branch name is provided
+if [ -z "$1" ]; then
+    echo "Usage: git-new-branch <new-branch-name> [base-branch]"
+    exit 1
+fi
+
+NEW_BRANCH="$1"
+BASE_BRANCH="${2:-develop}"  # default to 'develop' if not provided
+
+# Ensure we're inside a git repo
+if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+    echo "Error: Not inside a git repository."
+    exit 1
+fi
+
+echo "Checking for local changes..."
+if ! git diff-index --quiet HEAD --; then
+    echo "❌ You have local changes. Commit, stash, or discard them before creating a new branch."
+    exit 1
+fi
+echo "✓ No local changes."
+
+echo "Switching to base branch '$BASE_BRANCH'..."
+checkout_output=$(git checkout "$BASE_BRANCH" 2>&1)
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to checkout base branch '$BASE_BRANCH'."
+    echo "$checkout_output"
+    exit 1
+fi
+
+echo "Pulling latest changes from '$BASE_BRANCH'..."
+pull_output=$(git pull origin "$BASE_BRANCH" 2>&1)
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to pull latest changes from '$BASE_BRANCH'."
+    echo "$pull_output"
+    exit 1
+fi
+
+# Check if branch exists locally
+if git show-ref --verify --quiet refs/heads/"$NEW_BRANCH"; then
+    echo "Branch '$NEW_BRANCH' already exists locally. Switching to it..."
+    checkout_local_output=$(git checkout "$NEW_BRANCH" 2>&1)
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to checkout existing local branch '$NEW_BRANCH'."
+    echo "$checkout_local_output"
+    exit 1
+fi
+    echo "🚀 Switched to existing local branch '$NEW_BRANCH'."
+    exit 0
+fi
+
+# Check if branch exists on remote
+if git ls-remote --exit-code --heads origin "$NEW_BRANCH" > /dev/null 2>&1; then
+    echo "Branch '$NEW_BRANCH' exists on remote. Fetching and checking it out..."
+    git fetch origin "$NEW_BRANCH" > /dev/null 2>&1
+    if git show-ref --verify --quiet refs/remotes/origin/"$NEW_BRANCH"; then
+        checkout_remote_output=$(git checkout -t origin/"$NEW_BRANCH" 2>&1)
+        if [ $? -ne 0 ]; then
+            echo "Error: Failed to checkout remote branch '$NEW_BRANCH'."
+            echo "$checkout_remote_output"
+            exit 1
+        fi
+        echo "🚀 Checked out remote branch '$NEW_BRANCH'."
+        exit 0
+    else
+        echo "Error: Remote branch '$NEW_BRANCH' not found after fetch. It may have been deleted or renamed."
+        exit 1
+    fi
+fi
+
+echo "Creating and switching to new branch '$NEW_BRANCH'..."
+checkout_new_output=$(git checkout -b "$NEW_BRANCH" 2>&1)
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to create and checkout new branch '$NEW_BRANCH'."
+    echo "$checkout_new_output"
+    exit 1
+fi
+
+echo "🚀 Branch '$NEW_BRANCH' created from '$BASE_BRANCH' and checked out."
