@@ -66,25 +66,6 @@ if [ "$summary" == "null" ]; then
     echo "❌ Error: Issue not found or insufficient permissions."
     exit 1
 fi
-
-# AI branch name generation
-ai_prompt="Given the summary \"$summary\" and the description \"$description\", generate a short, concise, kebab-case string (no more than 5 words and under 40 characters if possible) that describes the purpose of the ticket. Only output the kebab-case string, do not include any ticket key or prefix."
-echo "🤖 Generating branch name with AI (model: github-copilot/gpt-4.1)..."
-ticket_info=$(opencode run --model github-copilot/gpt-4.1 "$ai_prompt")
-echo "AI output: $ticket_info"
-# Sanitize AI output
-sanitized=$(echo "$ticket_info" | tr '[:upper:]' '[:lower:]' | sed 's/[ _]/-/g; s/[^a-z0-9-]//g; s/--*/-/g; s/^-//; s/-$//')
-echo "Sanitized branch info: $sanitized"
-if [ -z "$sanitized" ]; then
-    echo "❌ Error: Sanitized branch name is empty after cleaning."
-    exit 1
-fi
-if [ ${#sanitized} -gt 40 ]; then
-    echo "⚠️  Warning: Branch name exceeds 40 characters."
-fi
-branch_name="feature/${ISSUE_KEY}-${sanitized}"
-echo "✅ AI-generated branch name: $branch_name"
-
 # Prepare branch pattern (case-insensitive, ticket ID followed by /, -, _, or end-of-string)
 pattern="${ISSUE_KEY}([-_/]|$)"
 # Check local branches
@@ -107,6 +88,25 @@ if [ -n "$local_matches" ] || [ -n "$remote_matches" ]; then
 else
     echo "✅ No matching branches found. Proceeding to create a new branch."
 fi
+
+# AI branch name generation
+ai_prompt="Given the summary \"$summary\" and the description \"$description\", generate a short, concise, kebab-case string (no more than 5 words and under 40 characters if possible) that describes the purpose of the ticket. Only output the kebab-case string, do not include any ticket key or prefix."
+echo "🤖 Generating branch name with AI (model: github-copilot/gpt-4.1)..."
+ticket_info=$(opencode run --model github-copilot/gpt-4.1 "$ai_prompt")
+echo "AI output: $ticket_info"
+# Sanitize AI output
+sanitized=$(echo "$ticket_info" | tr '[:upper:]' '[:lower:]' | sed 's/[ _]/-/g; s/[^a-z0-9-]//g; s/--*/-/g; s/^-//; s/-$//')
+echo "Sanitized branch info: $sanitized"
+if [ -z "$sanitized" ]; then
+    echo "❌ Error: Sanitized branch name is empty after cleaning."
+    exit 1
+fi
+if [ ${#sanitized} -gt 40 ]; then
+    echo "⚠️  Warning: Branch name exceeds 40 characters."
+fi
+branch_name="feature/${ISSUE_KEY}-${sanitized}"
+echo "✅ AI-generated branch name: $branch_name"
+
 
 echo "🌱 Creating and switching to new branch using git-new-branch: $branch_name (base: $BASE_BRANCH)"
 git-new-branch "$branch_name" "$BASE_BRANCH"
