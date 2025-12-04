@@ -1,10 +1,43 @@
-
 #!/usr/bin/env bash
 
+# ------------------------------------------------------------------------------
+# git-new-branch: Create a new git branch from a base branch (default: develop)
+#
+# Usage:
+#   git-new-branch <new-branch-name> [base-branch]
+#   git-new-branch --help | -h
+#
+# Options:
+#   <new-branch-name>   Name of the branch to create or switch to.
+#   [base-branch]       Base branch to create from (default: develop).
+#   --help, -h          Show this help message and exit.
+#
+# Behavior:
+#   - Ensures no local changes before switching branches.
+#   - Checks out and updates the base branch before creating the new branch.
+#   - If the branch exists locally or remotely, checks it out instead of creating.
+#   - Must be run inside a git repository.
+#
+# Examples:
+#   git-new-branch feature/my-feature
+#   git-new-branch bugfix/issue-123 main
+# ------------------------------------------------------------------------------
+
+# Print help message
+print_help() {
+    sed -n '/^# ---/,/^# ------------------------------------------------------------------------------/p' "$0" | sed 's/^# //;s/^#//'
+}
+
+# Handle --help and -h options
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    print_help
+    exit 0
+fi
 
 # Ensure branch name is provided
 if [ -z "$1" ]; then
     echo "Usage: git-new-branch <new-branch-name> [base-branch]"
+    echo "Try 'git-new-branch --help' for more information."
     exit 1
 fi
 
@@ -17,13 +50,16 @@ if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
     exit 1
 fi
 
+# Check for local changes
 echo "Checking for local changes..."
 if ! git diff-index --quiet HEAD --; then
     echo "❌ You have local changes. Commit, stash, or discard them before creating a new branch."
     exit 1
 fi
+
 echo "✓ No local changes."
 
+# Switch to base branch
 echo "Switching to base branch '$BASE_BRANCH'..."
 checkout_output=$(git checkout "$BASE_BRANCH" 2>&1)
 if [ $? -ne 0 ]; then
@@ -32,6 +68,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# Pull latest changes from base branch
 echo "Pulling latest changes from '$BASE_BRANCH'..."
 pull_output=$(git pull origin "$BASE_BRANCH" 2>&1)
 if [ $? -ne 0 ]; then
@@ -44,11 +81,11 @@ fi
 if git show-ref --verify --quiet refs/heads/"$NEW_BRANCH"; then
     echo "Branch '$NEW_BRANCH' already exists locally. Switching to it..."
     checkout_local_output=$(git checkout "$NEW_BRANCH" 2>&1)
-if [ $? -ne 0 ]; then
-    echo "Error: Failed to checkout existing local branch '$NEW_BRANCH'."
-    echo "$checkout_local_output"
-    exit 1
-fi
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to checkout existing local branch '$NEW_BRANCH'."
+        echo "$checkout_local_output"
+        exit 1
+    fi
     echo "🚀 Switched to existing local branch '$NEW_BRANCH'."
     exit 0
 fi
@@ -72,6 +109,7 @@ if git ls-remote --exit-code --heads origin "$NEW_BRANCH" > /dev/null 2>&1; then
     fi
 fi
 
+# Create and switch to new branch
 echo "Creating and switching to new branch '$NEW_BRANCH'..."
 checkout_new_output=$(git checkout -b "$NEW_BRANCH" 2>&1)
 if [ $? -ne 0 ]; then
