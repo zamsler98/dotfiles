@@ -1,0 +1,307 @@
+#!/usr/bin/env bash
+
+# ------------------------------------------------------------------------------
+# git-auto-pr: Automate PR creation from current branch to a target branch
+#
+# Usage:
+#   git-auto-pr <target-branch> [--draft] [-i] [--no-jira] [--debug]
+#   git-auto-pr --help | -h
+#
+# Options:
+#   <target-branch>   Branch to merge into (required)
+#   --draft           Create PR as draft (optional)
+#   -i                Use interactive rebase (optional)
+#   --no-jira         Skip Jira integration (optional)
+#   --debug           Print debug info if AI PR generation fails (optional)
+#   --help, -h        Show this help message and exit
+#
+# Behavior:
+#   - Ensures no local changes before proceeding
+#   - Pulls latest changes from target branch
+#   - Rebases current branch onto target branch (interactive if -i)
+#   - Pushes current branch to remote
+#   - If branch name matches <prefix>/<ticket_id>- or <prefix>/<ticket_id>_, attempts Jira integration:
+#       * Checks for Jira env vars
+#       * Checks ticket existence
+#       * Moves ticket to 'In Review' if possible
+#   - Skips Jira integration if --no-jira is provided, or prints a warning if skipped for any reason
+#   - Uses AI to generate PR title and description (via opencode /pr-summary), with fallback to generic title and no description
+#   - If AI generation fails and --debug is set, prints full AI command output and exit code, and logs to /tmp/git-auto-pr-ai-debug.log (never prints OPENCODE_API_KEY)
+#   - Creates a PR using GitHub CLI (draft if --draft)
+#   - Prints PR URL
+# ------------------------------------------------------------------------------
+
+print_help() {
+    sed -n '/^# ---/,/^# ------------------------------------------------------------------------------/p' "$0" | sed 's/^# //;s/^#//'
+}
+
+DRAFT=false
+INTERACTIVE_REBASE=false
+NO_JIRA=false
+DEBUG=false
+TARGET_BRANCH=""
+JIRA_URL=""
+TICKET_ID=""
+
+# Parse arguments (any order)
+for arg in "$@"; do
+  case "$arg" in
+    --help|-h)
+      print_help
+      exit 0
+      ;;
+    --draft)
+      DRAFT=true
+      ;;
+    -i)
+      INTERACTIVE_REBASE=true
+      ;;
+    --no-jira)
+      NO_JIRA=true
+      ;;
+    --debug)
+      DEBUG=true
+      ;;
+    -* )
+      echo "Unknown flag: $arg"
+      exit 1
+      ;;
+    *)
+      if [ -z "$TARGET_BRANCH" ]; then
+        TARGET_BRANCH="$arg"
+      else
+        echo "Error: Too many arguments."
+        exit 1
+      fi
+      ;;
+  esac
+done
+
+if [ -z "$TARGET_BRANCH" ]; then
+  echo "Usage: git-auto-pr <target-branch> [--draft] [-i] [--no-jira] [--debug]"
+  exit 1
+fi
+
+# Ensure we're inside a git repo
+if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+    echo "Error: Not inside a git repository."
+    exit 1
+fi
+
+# Check for local changes
+echo "Checking for uncommitted changes..."
+if ! git diff-index --quiet HEAD --; then
+    echo "❌ You have uncommitted changes. Please stage or commit them before running this script."
+    exit 1
+fi
+
+echo "✓ No uncommitted changes."
+
+# Fetch and pull latest changes from target branch
+if ! git fetch origin > /dev/null 2>fetch_error.log; then
+    echo "Error: Failed to fetch from origin."
+    cat fetch_error.log
+    rm -f fetch_error.log
+    exit 1
+fi
+rm -f fetch_error.log
+
+echo "Switching to target branch '$TARGET_BRANCH'..."
+if ! git checkout "$TARGET_BRANCH" > /dev/null 2>checkout_error.log; then
+    echo "Error: Failed to checkout target branch '$TARGET_BRANCH'."
+    cat checkout_error.log
+    rm -f checkout_error.log
+    exit 1
+fi
+rm -f checkout_error.log
+
+echo "Pulling latest changes from '$TARGET_BRANCH'..."
+if ! git pull origin "$TARGET_BRANCH" > /dev/null 2>pull_error.log; then
+    echo "Error: Failed to pull latest changes from '$TARGET_BRANCH'."
+    cat pull_error.log
+    rm -f pull_error.log
+    exit 1
+fi
+rm -f pull_error.log
+
+# Get current branch (source branch)
+SOURCE_BRANCH=$(git rev-parse --abbrev-ref @{-1} 2>/dev/null)
+if [ -z "$SOURCE_BRANCH" ]; then
+    SOURCE_BRANCH=$(git branch --show-current)
+fi
+
+if [ "$SOURCE_BRANCH" == "$TARGET_BRANCH" ]; then
+    echo "Error: Current branch is the same as target branch. Switch to your feature branch before running this script."
+    exit 1
+fi
+
+# Switch back to source branch
+if ! git checkout "$SOURCE_BRANCH" > /dev/null 2>checkout_src_error.log; then
+    echo "Error: Failed to checkout source branch '$SOURCE_BRANCH'."
+    cat checkout_src_error.log
+    rm -f checkout_src_error.log
+    exit 1
+fi
+rm -f checkout_src_error.log
+
+echo "Rebasing '$SOURCE_BRANCH' onto '$TARGET_BRANCH'..."
+if $INTERACTIVE_REBASE; then
+    echo "Starting interactive rebase. Your editor will open..."
+    if ! git rebase -i origin/"$TARGET_BRANCH"; then
+        echo "❌ Interactive rebase failed due to conflicts or user abort. Please resolve and re-run the script."
+        exit 1
+    fi
+else
+    if ! git rebase origin/"$TARGET_BRANCH" > /dev/null 2>rebase_error.log; then
+        echo "❌ Rebase failed due to conflicts. Please resolve them and re-run the script."
+        cat rebase_error.log
+        rm -f rebase_error.log
+        exit 1
+    fi
+    rm -f rebase_error.log
+fi
+
+echo "✓ Rebase successful."
+
+echo "Pushing '$SOURCE_BRANCH' to remote..."
+if ! git push origin "$SOURCE_BRANCH" > /dev/null 2>push_error.log; then
+    echo "Error: Failed to push branch '$SOURCE_BRANCH' to remote."
+    cat push_error.log
+    rm -f push_error.log
+    exit 1
+fi
+rm -f push_error.log
+
+echo "✓ Branch pushed."
+
+# --- JIRA INTEGRATION ---
+if $NO_JIRA; then
+    echo "⚠️  Jira integration skipped due to --no-jira flag."
+else
+    # Extract ticket ID from branch name (case-insensitive, dash or underscore allowed)
+    # Pattern: ^[^/]+/([A-Za-z]+[-_][0-9]+)[-_]
+    if [[ "$SOURCE_BRANCH" =~ ^[^/]+/([A-Za-z]+[-_][0-9]+)[-_] ]]; then
+        TICKET_ID="${BASH_REMATCH[1]}"
+        if [ -n "$JIRA_DOMAIN" ]; then
+          JIRA_URL="${JIRA_DOMAIN%/}/browse/$TICKET_ID"
+        fi
+        echo "🔎 Detected Jira ticket ID: $TICKET_ID from branch name '$SOURCE_BRANCH'"
+        # Check for Jira env vars
+        if [ -z "$JIRA_DOMAIN" ] || [ -z "$JIRA_EMAIL" ] || [ -z "$JIRA_API_TOKEN" ]; then
+            echo "⚠️  Jira environment variables not set. Skipping Jira integration."
+        else
+            # Check if ticket exists
+            API_URL="$JIRA_DOMAIN/rest/api/3/issue/$TICKET_ID"
+            response=$(curl -s -u "$JIRA_EMAIL:$JIRA_API_TOKEN" -H "Accept: application/json" "$API_URL")
+            summary=$(echo "$response" | jq -r '.fields.summary')
+            if [ "$summary" == "null" ] || [ -z "$summary" ]; then
+                echo "⚠️  Jira ticket $TICKET_ID not found or insufficient permissions. Skipping Jira integration."
+            else
+                status=$(echo "$response" | jq -r '.fields.status.name')
+                echo "   Current Jira status: $status"
+                if [[ "${status,,}" == "in review" ]]; then
+                    echo "✅ Jira ticket $TICKET_ID is already in 'In Review'."
+                else
+                    # Get available transitions
+                    transitions_json=$(curl -s -u "$JIRA_EMAIL:$JIRA_API_TOKEN" -H "Accept: application/json" "$JIRA_DOMAIN/rest/api/3/issue/$TICKET_ID/transitions")
+                    transition_id=$(echo "$transitions_json" | jq -r '.transitions[] | select(.to.name | ascii_downcase == "in review") | .id' | head -n1)
+                    if [ -n "$transition_id" ]; then
+                        curl -s -X POST -u "$JIRA_EMAIL:$JIRA_API_TOKEN" -H "Content-Type: application/json" \
+                            --data "{\"transition\":{\"id\":\"$transition_id\"}}" \
+                            "$JIRA_DOMAIN/rest/api/3/issue/$TICKET_ID/transitions" >/dev/null
+                        echo "✅ Moved Jira ticket $TICKET_ID to 'In Review'."
+                    else
+                        echo "⚠️  No 'In Review' transition available for Jira ticket $TICKET_ID."
+                    fi
+                fi
+            fi
+        fi
+    else
+        echo "⚠️  Branch name does not match Jira pattern. Skipping Jira integration."
+    fi
+fi
+
+# --- END JIRA INTEGRATION ---
+
+# Check for gh CLI
+if ! command -v gh > /dev/null 2>&1; then
+    echo "Error: GitHub CLI (gh) not found. Please install it and authenticate."
+    exit 1
+fi
+
+# --- AI PR TITLE & DESCRIPTION GENERATION ---
+PR_TITLE=""
+PR_BODY=""
+AI_PR_INFO=""
+AI_EXIT_CODE=0
+AI_LOG_FILE="/tmp/git-auto-pr-ai-debug.log"
+
+# Build AI command
+if [ -n "$JIRA_URL" ]; then
+  AI_CMD=(opencode run --command pr-summary "$TARGET_BRANCH" "$JIRA_URL" --model github-copilot/gpt-4.1)
+else
+  AI_CMD=(opencode run --command pr-summary "$TARGET_BRANCH" --model github-copilot/gpt-4.1)
+fi
+
+# Run AI command
+AI_PR_INFO=$("${AI_CMD[@]}" 2>&1)
+AI_EXIT_CODE=$?
+
+# Robust parsing for new and old formats
+if [ $AI_EXIT_CODE -eq 0 ]; then
+    # Try new format first
+    PR_TITLE=$(echo "$AI_PR_INFO" | grep -m1 '^PR Title:' | sed 's/^PR Title:[[:space:]]*//')
+    if [ -n "$PR_TITLE" ]; then
+        PR_BODY=$(echo "$AI_PR_INFO" | awk '/^PR Description:/{flag=1; next} /^[A-Za-z ]+:/ && NR>1{flag=0} flag' | sed '/^$/d')
+    fi
+    # If new format not found, try old format
+    if [ -z "$PR_TITLE" ]; then
+        PR_TITLE=$(echo "$AI_PR_INFO" | grep -m1 '^**Title:**' | sed 's/^\*\*Title:\*\*[[:space:]]*//')
+        if [ -n "$PR_TITLE" ]; then
+            PR_BODY=$(echo "$AI_PR_INFO" | awk '/^\*\*Description:\*\*/{flag=1; next} /^\*\*/{flag=0} flag' | sed '/^$/d')
+        fi
+    fi
+    if $DEBUG; then
+        echo "[AI DEBUG] AI command: ${AI_CMD[*]}" > "$AI_LOG_FILE"
+        echo "[AI DEBUG] Extracted PR_TITLE: '$PR_TITLE'" >> "$AI_LOG_FILE"
+        echo "[AI DEBUG] Extracted PR_BODY: '$PR_BODY'" >> "$AI_LOG_FILE"
+        echo "[AI DEBUG] Raw output:" >> "$AI_LOG_FILE"
+        echo "$AI_PR_INFO" >> "$AI_LOG_FILE"
+        echo "[AI DEBUG] Exit code: $AI_EXIT_CODE" >> "$AI_LOG_FILE"
+        echo "[AI DEBUG] See $AI_LOG_FILE for details." >> "$AI_LOG_FILE"
+        cat "$AI_LOG_FILE"
+    fi
+    if [ -z "$PR_TITLE" ]; then
+        PR_TITLE="Merge $SOURCE_BRANCH into $TARGET_BRANCH"
+        PR_BODY=""
+        echo "⚠️  AI PR title/description extraction failed. Using fallback title and leaving description blank."
+    fi
+else
+    PR_TITLE="Merge $SOURCE_BRANCH into $TARGET_BRANCH"
+    PR_BODY=""
+    echo "⚠️  AI PR title/description generation failed. Using fallback title and leaving description blank."
+    if $DEBUG; then
+        echo "[AI DEBUG] Extraction failed. Raw output:" > "$AI_LOG_FILE"
+        echo "$AI_PR_INFO" >> "$AI_LOG_FILE"
+        echo "[AI DEBUG] Exit code: $AI_EXIT_CODE" >> "$AI_LOG_FILE"
+        echo "[AI DEBUG] See $AI_LOG_FILE for details." >> "$AI_LOG_FILE"
+        cat "$AI_LOG_FILE"
+    fi
+fi
+
+echo "PR Title: $PR_TITLE"
+# --- END AI PR TITLE & DESCRIPTION GENERATION ---
+
+echo "Creating PR from '$SOURCE_BRANCH' to '$TARGET_BRANCH'..."
+if $DRAFT; then
+    PR_URL=$(gh pr create --base "$TARGET_BRANCH" --head "$SOURCE_BRANCH" --title "$PR_TITLE" --body "$PR_BODY" --draft 2>&1)
+else
+    PR_URL=$(gh pr create --base "$TARGET_BRANCH" --head "$SOURCE_BRANCH" --title "$PR_TITLE" --body "$PR_BODY" 2>&1)
+fi
+
+if [[ "$PR_URL" == *"https://github.com"* ]]; then
+    echo "🚀 PR created: $PR_URL"
+else
+    echo "Error creating PR: $PR_URL"
+    exit 1
+fi
