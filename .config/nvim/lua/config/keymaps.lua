@@ -32,7 +32,6 @@ vim.keymap.set('n', '<leader>ur', function()
 end, { desc = 'Toggle relative line numbers' })
 
 -- Split management
-vim.keymap.set('n', '<leader>sv', ':vsplit<CR>', { noremap = true, desc = 'Vertical split' })
 vim.keymap.set('n', '<leader>sh', ':split<CR>', { noremap = true, desc = 'Horizontal split' })
 vim.keymap.set('n', '<leader>q', ':close<CR>', { noremap = true, desc = 'Close split' })
 
