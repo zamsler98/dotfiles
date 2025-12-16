@@ -6,7 +6,8 @@ return {
         require("blink.cmp").setup({
             keymap = {
                 preset = "default", -- standard mappings
-                ['<CR>'] = { "accept"} ,
+                -- Removed default <CR> accept mapping to preserve newline behavior
+                ['<CR>'] = { "accept", "fallback"} ,
                 ['<C-k>'] = { "select_prev"},
                 ['<C-j>'] = { "select_next"},
             },
