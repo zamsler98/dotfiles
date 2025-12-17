@@ -1,8 +1,9 @@
-local builtin = require('telescope.builtin')
-vim.keymap.set('n', '<leader>ff', builtin.find_files, { desc = 'Telescope find files' })
-vim.keymap.set('n', '<leader>fg', builtin.live_grep, { desc = 'Telescope live grep' })
-vim.keymap.set('n', '<leader>fb', builtin.buffers, { desc = 'Telescope buffers' })
-vim.keymap.set('n', '<leader>fh', builtin.help_tags, { desc = 'Telescope help tags' })
+local Snacks = require("snacks")
+
+vim.keymap.set('n', '<leader>ff', function() Snacks.picker.files() end, { desc = 'Snacks: Find files' })
+vim.keymap.set('n', '<leader>fg', function() Snacks.picker.grep() end, { desc = 'Snacks: Live grep' })
+vim.keymap.set('n', '<leader>fb', function() Snacks.picker.buffers() end, { desc = 'Snacks: Buffers' })
+vim.keymap.set('n', '<leader>fh', function() Snacks.picker.help() end, { desc = 'Snacks: Help tags' })
 
 vim.keymap.set("n", "j", function()
   return vim.v.count == 0 and "gj" or "j"
