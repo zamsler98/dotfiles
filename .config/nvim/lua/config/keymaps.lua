@@ -81,3 +81,6 @@ vim.keymap.set("v", "ga", "<cmd>CodeCompanionChat Add<cr>", { noremap = true, si
 
 -- Expand 'cc' into 'CodeCompanion' in the command line
 vim.cmd([[cab cc CodeCompanion]])
+
+
+vim.keymap.set({ "n", "v", "t" }, "<C-g>", function() Snacks.lazygit() end, { noremap = true, silent = true, desc = 'Toggle LazyGit' })

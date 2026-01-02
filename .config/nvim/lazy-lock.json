@@ -25,6 +25,7 @@
   "toggleterm.nvim": { "branch": "main", "commit": "50ea089fc548917cc3cc16b46a8211833b9e3c7c" },
   "tokyonight.nvim": { "branch": "main", "commit": "5da1b76e64daf4c5d410f06bcb6b9cb640da7dfd" },
   "trouble.nvim": { "branch": "main", "commit": "bd67efe408d4816e25e8491cc5ad4088e708a69a" },
+  "vim-dispatch": { "branch": "master", "commit": "a2ff28abdb2d89725192db5b8562977d392a4d3f" },
   "vscode-diff.nvim": { "branch": "next", "commit": "7ade58156e12077faa9fe932000c4b1e75d64a0b" },
   "yazi.nvim": { "branch": "main", "commit": "d34cbb3778fc92aa0954bda0ce5f32cac842d4a9" }
 }

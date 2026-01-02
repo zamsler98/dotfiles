@@ -24,15 +24,13 @@ vim.opt.breakindent = true    -- Indent wrapped lines to match line start
 vim.opt.cursorline = true
 
 -- Make sure Neovim sees ya
-vim.env.PATH = vim.env.PATH .. ":" .. os.getenv("HOME") .. "/.local/bin" .. ":/snap/bin"
-vim.env.PATH = vim.env.PATH .. ':/home/zamsl/.nvm/versions/node/v24.11.1/bin'
+--vim.env.PATH = vim.env.PATH .. ":" .. os.getenv("HOME") .. "/.local/bin" .. ":/snap/bin"
+--vim.env.PATH = vim.env.PATH .. ':/home/zamsl/.nvm/versions/node/v24.11.1/bin'
 
 require("config.lazy")
 require("config.keymaps")
 
-vim.cmd("colorscheme gruvbox")
-
-vim.lsp.enable('roslyn_ls')
+vim.cmd("colorscheme catppuccin")
 
 vim.cmd [[highlight! link NormalFloat Normal]]
 vim.cmd [[highlight! link FloatBorder Normal]]
