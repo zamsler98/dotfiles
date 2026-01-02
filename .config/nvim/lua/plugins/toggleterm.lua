@@ -69,7 +69,10 @@ return {
         -- Terminal keymaps
         function _G.set_terminal_keymaps()
             local opts = { buffer = 0 }
-            vim.keymap.set("t", "<esc>", [[<C-\><C-n>:q<CR>]], opts)
+            -- Make <esc> only exit terminal insert mode (don't close)
+            vim.keymap.set("t", "<esc>", [[<C-\\><C-n>]], opts)
+            -- Map <C-q> to close the terminal
+            vim.keymap.set("t", "<C-q>", [[<C-\\><C-n>:q<CR>]], opts)
             vim.keymap.set("t", "<C-h>", [[<C-\><C-n><C-w>h]], opts)
             vim.keymap.set("t", "<C-j>", [[<C-\><C-n><C-w>j]], opts)
             vim.keymap.set("t", "<C-k>", [[<C-\><C-n><C-w>k]], opts)
