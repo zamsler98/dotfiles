@@ -17,6 +17,8 @@ vim.keymap.set("n", "<C-d>", "<C-d>zz", { noremap = true, silent = true })
 
 -- Move between splits with Ctrl+h/j/k/l
 vim.keymap.set('n', '<C-h>', '<C-w>h', { noremap = true, silent = true, desc = 'Move to left split' })
+-- Fallback: many terminals send Ctrl+H as Backspace (\b / ^H). Map <BS> too.
+vim.keymap.set('n', '<BS>', '<C-w>h', { noremap = true, silent = true, desc = 'Move to left split (fallback for terminals that send <BS> for <C-h>)' })
 vim.keymap.set('n', '<C-j>', '<C-w>j', { noremap = true, silent = true, desc = 'Move to below split' })
 vim.keymap.set('n', '<C-k>', '<C-w>k', { noremap = true, silent = true, desc = 'Move to above split' })
 vim.keymap.set('n', '<C-l>', '<C-w>l', { noremap = true, silent = true, desc = 'Move to right split' })
@@ -84,3 +86,7 @@ vim.cmd([[cab cc CodeCompanion]])
 
 
 vim.keymap.set({ "n", "v", "t" }, "<C-g>", function() Snacks.lazygit() end, { noremap = true, silent = true, desc = 'Toggle LazyGit' })
+
+-- Move to start/end of line with H/L in normal and visual modes
+vim.keymap.set({ 'n', 'v' }, 'H', '^', { noremap = true, silent = true, desc = 'Move to first non-blank of line' })
+vim.keymap.set({ 'n', 'v' }, 'L', '$', { noremap = true, silent = true, desc = 'Move to end of line' })
