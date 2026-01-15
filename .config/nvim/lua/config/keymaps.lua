@@ -90,3 +90,24 @@ vim.keymap.set({ "n", "v", "t" }, "<C-g>", function() Snacks.lazygit() end, { no
 -- Move to start/end of line with H/L in normal and visual modes
 vim.keymap.set({ 'n', 'v' }, 'H', '^', { noremap = true, silent = true, desc = 'Move to first non-blank of line' })
 vim.keymap.set({ 'n', 'v' }, 'L', '$', { noremap = true, silent = true, desc = 'Move to end of line' })
+
+-- Quickfix navigation and Snacks quickfix picker
+vim.keymap.set('n', ']q', ':cnext<CR>', { noremap = true, silent = true, desc = 'Quickfix: next' })
+vim.keymap.set('n', '[q', ':cprev<CR>', { noremap = true, silent = true, desc = 'Quickfix: previous' })
+vim.keymap.set('n', '<leader>qo', ':copen<CR>', { noremap = true, silent = true, desc = 'Quickfix: open' })
+vim.keymap.set('n', '<leader>qc', ':cclose<CR>', { noremap = true, silent = true, desc = 'Quickfix: close' })
+vim.keymap.set('n', '<leader>qt', function()
+  local qf_open = false
+  for _, win in ipairs(vim.fn.getwininfo()) do
+    if win.quickfix == 1 then
+      qf_open = true
+      break
+    end
+  end
+  if qf_open then
+    vim.cmd('cclose')
+  else
+    vim.cmd('copen')
+  end
+end, { noremap = true, silent = true, desc = 'Quickfix: toggle' })
+vim.keymap.set('n', '<leader>qs', function() Snacks.picker.qflist() end, { desc = 'Snacks: Quickfix list' })
