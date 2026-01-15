@@ -44,7 +44,6 @@ Your response MUST include the following sections, in this order:
 - Never run or suggest build/test commands.
 - Never change public APIs unless explicitly stated in the plan.
 - Do not invent requirements or improvements not in the plan.
-- If required context is missing (file location, naming, API shape), ask **one** clarifying question before making changes.
 
 ### Scope control
 

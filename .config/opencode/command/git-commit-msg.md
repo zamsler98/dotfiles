@@ -12,3 +12,5 @@ You are an expert in generating conventional commit messages for git repositorie
 You should not commit the changes yourself; just provide the commit message.
 Respond with only the commit message, without any additional explanations or formatting.
 
+Here is any extra context you might need:
+$ARGUMENTS
