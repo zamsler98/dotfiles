@@ -1,0 +1,53 @@
+#!/bin/bash
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "Bootstrapping dotfiles..."
+
+SSH_KEY="$HOME/.ssh/id_ed25519"
+
+setup_ssh() {
+    echo ""
+    echo "=== SSH Setup for GitHub ==="
+
+    if [[ -f "$SSH_KEY" ]]; then
+        echo "SSH key already exists at $SSH_KEY"
+    else
+        echo "Generating new SSH key..."
+        mkdir -p "$HOME/.ssh"
+        ssh-keygen -t ed25519 -f "$SSH_KEY" -N "" -C "$(whoami)@$(hostname)"
+        echo "SSH key generated."
+    fi
+
+    echo ""
+    echo "Add this public key to GitHub (https://github.com/settings/keys):"
+    echo ""
+    cat "${SSH_KEY}.pub"
+    echo ""
+
+    read -p "Press Enter after adding the key to GitHub..."
+
+    echo "Testing GitHub connection..."
+    if ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
+        echo "GitHub SSH connection successful!"
+    else
+        echo "Warning: Could not verify GitHub connection. You may need to troubleshoot."
+    fi
+
+    # Switch yadm remote to SSH if currently HTTPS
+    current_remote=$(yadm remote get-url origin 2>/dev/null || echo "")
+    if [[ "$current_remote" == https://github.com/* ]]; then
+        ssh_remote=$(echo "$current_remote" | sed 's|https://github.com/|git@github.com:|')
+        echo "Switching yadm remote to SSH..."
+        yadm remote set-url origin "$ssh_remote"
+        echo "Remote updated to: $ssh_remote"
+    fi
+}
+
+setup_ssh
+
+# Install/sync packages
+chmod +x "$SCRIPT_DIR/packages.sh"
+"$SCRIPT_DIR/packages.sh"

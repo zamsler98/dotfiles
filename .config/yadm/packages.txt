@@ -1,0 +1,14 @@
+# Package list for dotfiles
+# Format: name | apt_name | brew_name
+# - Use | to separate names if they differ between package managers
+# - Use "-" to skip a package manager (e.g., "myapp | - | myapp" for brew-only)
+# - Lines starting with # are comments
+
+git
+curl
+wget
+neovim | neovim | nvim
+ripgrep | ripgrep | ripgrep
+fd | fd-find | fd
+jq
+tmux
