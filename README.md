@@ -31,3 +31,19 @@ If you already have conflicting dotfiles, use `--force` to overwrite:
 ```bash
 yadm clone --force https://github.com/<username>/dotfiles.git
 ```
+
+## Font
+
+This setup requires **Iosevka Nerd Font** for proper rendering of icons and glyphs (used by Neovim, lualine, etc.).
+
+Install it from [Nerd Fonts](https://www.nerdfonts.com/font-downloads) or via a package manager:
+
+```bash
+# Arch Linux
+sudo pacman -S ttf-iosevka-nerd
+
+# macOS
+brew install --cask font-iosevka-nerd-font
+```
+
+Then set `IosevkaNerdFont` (or `IosevkaNFM` for mono) as your terminal font.
