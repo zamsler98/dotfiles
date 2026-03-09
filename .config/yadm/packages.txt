@@ -14,8 +14,8 @@ fd | fd-find | fd
 jq
 tmux
 zsh
-
 yazi | custom | yazi
+fzf
 
 # Custom installs (see custom_installs.sh)
 oh-my-zsh | custom | custom
