@@ -2,7 +2,7 @@
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "");" && pwd)"
 
 echo "Bootstrapping dotfiles..."
 
@@ -51,3 +51,6 @@ setup_ssh
 # Install/sync packages
 chmod +x "$SCRIPT_DIR/packages.sh"
 "$SCRIPT_DIR/packages.sh"
+
+# Make zsh the default shell
+chsh -s $(which zsh)
