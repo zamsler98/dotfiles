@@ -42,3 +42,122 @@ install_powerlevel10k() {
     git clone --depth=1 https://github.com/romkatv/powerlevel10k.git \
         "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
 }
+
+check_nvm() {
+    local nvm_sh
+    nvm_sh="$HOME/.nvm/nvm.sh"
+
+    [[ -s "$nvm_sh" ]] || return 1
+
+    export NVM_DIR="$HOME/.nvm"
+    # shellcheck source=/dev/null
+    . "$nvm_sh"
+
+    [[ "$(nvm version 24)" != "N/A" ]]
+}
+
+install_nvm() {
+    if ! command -v curl &>/dev/null; then
+        echo "Error: curl is required to install nvm"
+        return 1
+    fi
+
+    export NVM_DIR="$HOME/.nvm"
+    mkdir -p "$NVM_DIR"
+
+    if [[ ! -s "$NVM_DIR/nvm.sh" ]]; then
+        curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
+    fi
+
+    # Load nvm into this non-interactive shell
+    # shellcheck source=/dev/null
+    . "$NVM_DIR/nvm.sh"
+
+    nvm install 24
+    nvm alias default 24
+}
+
+_npm_globals_file() {
+    local base_dir
+    base_dir="${SCRIPT_DIR:-$HOME/.config/yadm}"
+    echo "$base_dir/npm_globals.txt"
+}
+
+_ensure_npm_available() {
+    if command -v npm &>/dev/null; then
+        return 0
+    fi
+
+    # If nvm is present, load it so npm/node may become available.
+    if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
+        export NVM_DIR="$HOME/.nvm"
+        # shellcheck source=/dev/null
+        . "$HOME/.nvm/nvm.sh"
+
+        # Prefer default if configured; ignore errors.
+        nvm use default &>/dev/null || true
+    fi
+
+    command -v npm &>/dev/null
+}
+
+_npm_global_installed() {
+    local pkg="$1"
+
+    # npm ls exits non-zero when the package isn't installed.
+    npm ls -g --depth=0 "$pkg" &>/dev/null
+}
+
+check_npm_globals() {
+    local globals_file
+    globals_file="$(_npm_globals_file)"
+
+    [[ -f "$globals_file" ]] || return 0
+
+    if ! _ensure_npm_available; then
+        # Force install step to run so it can emit a warning.
+        return 1
+    fi
+
+    local line pkg
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ "$line" =~ ^#.*$ || -z "${line// }" ]] && continue
+        pkg="$(echo "$line" | xargs)"
+        [[ -z "$pkg" ]] && continue
+
+        if ! _npm_global_installed "$pkg"; then
+            return 1
+        fi
+    done < "$globals_file"
+
+    return 0
+}
+
+install_npm_globals() {
+    local globals_file
+    globals_file="$(_npm_globals_file)"
+
+    [[ -f "$globals_file" ]] || {
+        echo "npm-globals: no list file found at $globals_file; skipping"
+        return 0
+    }
+
+    if ! _ensure_npm_available; then
+        echo "Warning: npm-globals: 'npm' not found; skipping global npm installs"
+        return 0
+    fi
+
+    local line pkg
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ "$line" =~ ^#.*$ || -z "${line// }" ]] && continue
+        pkg="$(echo "$line" | xargs)"
+        [[ -z "$pkg" ]] && continue
+
+        if _npm_global_installed "$pkg"; then
+            echo "npm-globals: $pkg already installed, skipping"
+        else
+            echo "npm-globals: installing $pkg..."
+            npm install -g "$pkg"
+        fi
+    done < "$globals_file"
+}
