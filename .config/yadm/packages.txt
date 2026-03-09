@@ -16,6 +16,7 @@ tmux
 zsh
 yazi | custom | yazi
 fzf
+nvm | custom | nvm
 
 # Custom installs (see custom_installs.sh)
 oh-my-zsh | custom | custom

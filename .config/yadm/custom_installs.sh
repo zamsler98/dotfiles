@@ -42,3 +42,37 @@ install_powerlevel10k() {
     git clone --depth=1 https://github.com/romkatv/powerlevel10k.git \
         "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
 }
+
+check_nvm() {
+    local nvm_sh
+    nvm_sh="$HOME/.nvm/nvm.sh"
+
+    [[ -s "$nvm_sh" ]] || return 1
+
+    export NVM_DIR="$HOME/.nvm"
+    # shellcheck source=/dev/null
+    . "$nvm_sh"
+
+    [[ "$(nvm version 24)" != "N/A" ]]
+}
+
+install_nvm() {
+    if ! command -v curl &>/dev/null; then
+        echo "Error: curl is required to install nvm"
+        return 1
+    fi
+
+    export NVM_DIR="$HOME/.nvm"
+    mkdir -p "$NVM_DIR"
+
+    if [[ ! -s "$NVM_DIR/nvm.sh" ]]; then
+        curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
+    fi
+
+    # Load nvm into this non-interactive shell
+    # shellcheck source=/dev/null
+    . "$NVM_DIR/nvm.sh"
+
+    nvm install 24
+    nvm alias default 24
+}
