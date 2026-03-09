@@ -17,3 +17,4 @@ zsh
 
 # Custom installs (see custom_installs.sh)
 oh-my-zsh | custom | custom
+powerlevel10k | custom | custom
