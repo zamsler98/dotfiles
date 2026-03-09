@@ -9,6 +9,23 @@
 # Names must match the package name in packages.txt with hyphens/spaces
 # replaced by underscores (e.g. "oh-my-zsh" -> "oh_my_zsh").
 
+check_yazi() {
+    command -v yazi &>/dev/null
+}
+
+install_yazi() {
+    local tmp_dir
+    tmp_dir=$(mktemp -d)
+    local latest_url
+    latest_url=$(curl -fsSL https://api.github.com/repos/sxyazi/yazi/releases/latest \
+        | grep -o '"browser_download_url": *"[^"]*x86_64-unknown-linux-musl.zip"' \
+        | grep -o 'https://[^"]*')
+    curl -fsSL "$latest_url" -o "$tmp_dir/yazi.zip"
+    python3 -c "import zipfile; zipfile.ZipFile('$tmp_dir/yazi.zip').extractall('$tmp_dir')"
+    sudo install -m 755 "$tmp_dir"/yazi-x86_64-unknown-linux-musl/yazi /usr/local/bin/yazi
+    rm -rf "$tmp_dir"
+}
+
 check_oh_my_zsh() {
     [[ -d "$HOME/.oh-my-zsh" ]]
 }
