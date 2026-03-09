@@ -12,3 +12,4 @@ ripgrep | ripgrep | ripgrep
 fd | fd-find | fd
 jq
 tmux
+zsh
