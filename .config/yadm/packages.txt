@@ -2,6 +2,7 @@
 # Format: name | apt_name | brew_name
 # - Use | to separate names if they differ between package managers
 # - Use "-" to skip a package manager (e.g., "myapp | - | myapp" for brew-only)
+# - Use "custom" to use a custom install script from custom_installs.sh
 # - Lines starting with # are comments
 
 git
@@ -13,3 +14,6 @@ fd | fd-find | fd
 jq
 tmux
 zsh
+
+# Custom installs (see custom_installs.sh)
+oh-my-zsh | custom | custom
