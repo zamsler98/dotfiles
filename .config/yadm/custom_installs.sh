@@ -40,10 +40,44 @@ install_neovim() {
     tmp_dir=$(mktemp -d)
     local latest_url
 
-    # Prefer the linux x86_64 tarball asset
-    latest_url=$(curl -fsSL https://api.github.com/repos/neovim/neovim/releases/latest \
-        | grep -o '"browser_download_url": *"[^"]*nvim-linux64.tar.gz"' \
-        | grep -o 'https://[^\"]*' || true)
+    # Fetch release JSON and try several robust parsers to locate a linux x86_64 tarball.
+    local release_json
+    release_json=$(curl -fsSL https://api.github.com/repos/neovim/neovim/releases/latest) || {
+        echo "neovim: failed to fetch release metadata"
+        rm -rf "$tmp_dir"
+        return 1
+    }
+
+    # 1) Prefer jq if available
+    if command -v jq &>/dev/null; then
+        latest_url=$(printf '%s' "$release_json" \
+            | jq -r '.assets[]?.browser_download_url // empty' \
+            | grep -i 'nvim-linux64.*tar' | head -n1 || true)
+    fi
+
+    # 2) Try python3 JSON parsing fallback (no jq required)
+    if [[ -z "$latest_url" ]] && command -v python3 &>/dev/null; then
+        latest_url=$(printf '%s' "$release_json" | python3 - <<'PY'
+import sys, json
+try:
+    j = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+for a in j.get('assets', []):
+    u = a.get('browser_download_url', '')
+    if 'nvim-linux64' in u and 'tar' in u:
+        print(u)
+        break
+PY
+ || true)
+    fi
+
+    # 3) Conservative grep fallback (last resort)
+    if [[ -z "$latest_url" ]]; then
+        latest_url=$(printf '%s' "$release_json" \
+            | grep -o '"browser_download_url": *"[^"]*nvim-linux64[^\"]*"' \
+            | grep -o 'https://[^\"]*' | head -n1 || true)
+    fi
 
     if [[ -z "$latest_url" ]]; then
         echo "neovim: failed to find latest linux tarball URL from GitHub releases"
