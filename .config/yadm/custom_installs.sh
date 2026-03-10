@@ -54,7 +54,7 @@ install_neovim() {
             | jq -r '.assets[]?.browser_download_url // empty' \
             | grep -i 'nvim-linux-x86_64.tar.gz' | head -n1 || true)
     fi
-    
+
     if [[ -z "$latest_url" ]]; then
         echo "neovim: failed to find latest linux tarball URL from GitHub releases"
         rm -rf "$tmp_dir"
@@ -65,15 +65,15 @@ install_neovim() {
     curl -fsSL "$latest_url" -o "$tmp_dir/nvim.tar.gz"
     tar -xzf "$tmp_dir/nvim.tar.gz" -C "$tmp_dir"
 
-    # The tarball extracts to a directory named nvim-linux64
-    if [[ ! -d "$tmp_dir/nvim-linux64" ]]; then
+    # The tarball extracts to a directory named nvim-linux-x86_64
+    if [[ ! -d "$tmp_dir/nvim-linux-x86_64" ]]; then
         echo "neovim: unexpected archive layout"
         rm -rf "$tmp_dir"
         return 1
     fi
 
     echo "neovim: installing to /usr/local (requires sudo)"
-    sudo cp -r "$tmp_dir/nvim-linux64"/* /usr/local/
+    sudo cp -r "$tmp_dir/nvim-linux-x86_64"/* /usr/local/
 
     # Ensure /usr/local/bin/nvim is executable
     sudo chmod 755 /usr/local/bin/nvim || true
