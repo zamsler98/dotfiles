@@ -8,6 +8,7 @@
 git
 curl
 wget
+lazygit
 neovim | custom | nvim
 ripgrep | ripgrep | ripgrep
 fd | fd-find | fd
