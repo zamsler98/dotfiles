@@ -69,7 +69,7 @@ for a in j.get('assets', []):
         print(u)
         break
 PY
- || true)
+)
     fi
 
     # 3) Conservative grep fallback (last resort)
