@@ -26,6 +26,52 @@ install_yazi() {
     rm -rf "$tmp_dir"
 }
 
+check_neovim() {
+    command -v nvim &>/dev/null
+}
+
+install_neovim() {
+    if ! command -v curl &>/dev/null; then
+        echo "Error: curl is required to install Neovim"
+        return 1
+    fi
+
+    local tmp_dir
+    tmp_dir=$(mktemp -d)
+    local latest_url
+
+    # Prefer the linux x86_64 tarball asset
+    latest_url=$(curl -fsSL https://api.github.com/repos/neovim/neovim/releases/latest \
+        | grep -o '"browser_download_url": *"[^"]*nvim-linux64.tar.gz"' \
+        | grep -o 'https://[^\"]*' || true)
+
+    if [[ -z "$latest_url" ]]; then
+        echo "neovim: failed to find latest linux tarball URL from GitHub releases"
+        rm -rf "$tmp_dir"
+        return 1
+    fi
+
+    echo "neovim: downloading $latest_url"
+    curl -fsSL "$latest_url" -o "$tmp_dir/nvim.tar.gz"
+    tar -xzf "$tmp_dir/nvim.tar.gz" -C "$tmp_dir"
+
+    # The tarball extracts to a directory named nvim-linux64
+    if [[ ! -d "$tmp_dir/nvim-linux64" ]]; then
+        echo "neovim: unexpected archive layout"
+        rm -rf "$tmp_dir"
+        return 1
+    fi
+
+    echo "neovim: installing to /usr/local (requires sudo)"
+    sudo cp -r "$tmp_dir/nvim-linux64"/* /usr/local/
+
+    # Ensure /usr/local/bin/nvim is executable
+    sudo chmod 755 /usr/local/bin/nvim || true
+
+    rm -rf "$tmp_dir"
+    echo "neovim: installation complete"
+}
+
 check_oh_my_zsh() {
     [[ -d "$HOME/.oh-my-zsh" ]]
 }
