@@ -52,33 +52,9 @@ install_neovim() {
     if command -v jq &>/dev/null; then
         latest_url=$(printf '%s' "$release_json" \
             | jq -r '.assets[]?.browser_download_url // empty' \
-            | grep -i 'nvim-linux64.*tar' | head -n1 || true)
+            | grep -i 'nvim-linux-x86_64.tar.gz' | head -n1 || true)
     fi
-
-    # 2) Try python3 JSON parsing fallback (no jq required)
-    if [[ -z "$latest_url" ]] && command -v python3 &>/dev/null; then
-        latest_url=$(printf '%s' "$release_json" | python3 - <<'PY'
-import sys, json
-try:
-    j = json.load(sys.stdin)
-except Exception:
-    sys.exit(0)
-for a in j.get('assets', []):
-    u = a.get('browser_download_url', '')
-    if 'nvim-linux64' in u and 'tar' in u:
-        print(u)
-        break
-PY
-)
-    fi
-
-    # 3) Conservative grep fallback (last resort)
-    if [[ -z "$latest_url" ]]; then
-        latest_url=$(printf '%s' "$release_json" \
-            | grep -o '"browser_download_url": *"[^"]*nvim-linux64[^\"]*"' \
-            | grep -o 'https://[^\"]*' | head -n1 || true)
-    fi
-
+    
     if [[ -z "$latest_url" ]]; then
         echo "neovim: failed to find latest linux tarball URL from GitHub releases"
         rm -rf "$tmp_dir"
