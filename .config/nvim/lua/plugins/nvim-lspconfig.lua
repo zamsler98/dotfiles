@@ -12,6 +12,25 @@ return {
         end
     }, 
     {
+        "williamboman/mason-lspconfig.nvim",
+        dependencies = { "williamboman/mason.nvim", "neovim/nvim-lspconfig" },
+        config = function()
+            require("mason-lspconfig").setup({
+                ensure_installed = { "ts_ls", "eslint" },
+            })
+            vim.lsp.config("ts_ls", {})
+            vim.lsp.enable("ts_ls")
+            vim.lsp.config("eslint", {})
+            vim.lsp.enable("eslint")
+            vim.api.nvim_create_autocmd("BufWritePre", {
+                pattern = { "*.ts", "*.tsx", "*.js", "*.jsx" },
+                callback = function()
+                    vim.lsp.buf.code_action({ context = { only = { "source.fixAll.eslint" } }, apply = true })
+                end,
+            })
+        end,
+    },
+    {
         'neovim/nvim-lspconfig',
     },
     {
