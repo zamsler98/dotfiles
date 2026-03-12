@@ -10,20 +10,76 @@
 # replaced by underscores (e.g. "oh-my-zsh" -> "oh_my_zsh").
 
 check_yazi() {
-    command -v yazi &>/dev/null
+    command -v yazi &>/dev/null && command -v ya &>/dev/null
 }
 
 install_yazi() {
+    if ! command -v curl &>/dev/null; then
+        echo "yazi: curl is required"
+        return 1
+    fi
+
+    if ! command -v python3 &>/dev/null; then
+        echo "yazi: python3 is required to extract the release zip"
+        return 1
+    fi
+
     local tmp_dir
     tmp_dir=$(mktemp -d)
-    local latest_url
-    latest_url=$(curl -fsSL https://api.github.com/repos/sxyazi/yazi/releases/latest \
-        | grep -o '"browser_download_url": *"[^"]*x86_64-unknown-linux-musl.zip"' \
-        | grep -o 'https://[^"]*')
+    trap 'rm -rf "$tmp_dir"' RETURN
+
+    local release_json latest_url
+    release_json=$(curl -fsSL https://api.github.com/repos/sxyazi/yazi/releases/latest) || {
+        echo "yazi: failed to fetch release metadata"
+        return 1
+    }
+
+    # Prefer jq if available; fallback to grep.
+    if command -v jq &>/dev/null; then
+        latest_url=$(printf '%s' "$release_json" \
+            | jq -r '.assets[]?.browser_download_url // empty' \
+            | grep -i 'x86_64-unknown-linux-musl\.zip$' \
+            | head -n1 || true)
+    fi
+
+    if [[ -z "${latest_url:-}" ]]; then
+        latest_url=$(printf '%s' "$release_json" \
+            | grep -o '"browser_download_url": *"[^"]*x86_64-unknown-linux-musl\.zip"' \
+            | grep -o 'https://[^"]*' \
+            | head -n1 || true)
+    fi
+
+    if [[ -z "${latest_url:-}" ]]; then
+        echo "yazi: failed to find latest x86_64 musl zip URL"
+        return 1
+    fi
+
+    echo "yazi: downloading $latest_url"
     curl -fsSL "$latest_url" -o "$tmp_dir/yazi.zip"
     python3 -c "import zipfile; zipfile.ZipFile('$tmp_dir/yazi.zip').extractall('$tmp_dir')"
-    sudo install -m 755 "$tmp_dir"/yazi-x86_64-unknown-linux-musl/yazi /usr/local/bin/yazi
-    rm -rf "$tmp_dir"
+
+    local extracted_dir
+    extracted_dir="$tmp_dir/yazi-x86_64-unknown-linux-musl"
+    if [[ ! -d "$extracted_dir" ]]; then
+        echo "yazi: unexpected archive layout (missing $extracted_dir)"
+        return 1
+    fi
+
+    if [[ ! -f "$extracted_dir/yazi" ]]; then
+        echo "yazi: archive missing 'yazi' executable"
+        return 1
+    fi
+
+    if [[ ! -f "$extracted_dir/ya" ]]; then
+        echo "yazi: archive missing 'ya' executable"
+        return 1
+    fi
+
+    echo "yazi: installing to /usr/local/bin (requires sudo)"
+    sudo install -m 755 "$extracted_dir/yazi" /usr/local/bin/yazi
+    sudo install -m 755 "$extracted_dir/ya" /usr/local/bin/ya
+
+    echo "yazi: installation complete"
 }
 
 check_neovim() {
