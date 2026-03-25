@@ -87,6 +87,9 @@ vim.cmd([[cab cc CodeCompanion]])
 
 vim.keymap.set({ "n", "v", "t" }, "<C-g>", function() Snacks.lazygit() end, { noremap = true, silent = true, desc = 'Toggle LazyGit' })
 
+-- Exit terminal mode with Esc
+vim.keymap.set('t', '<Esc>', '<C-\\><C-n>', { desc = 'Terminal: Exit to Normal mode' })
+
 -- Move to start/end of line with H/L in normal and visual modes
 vim.keymap.set({ 'n', 'v' }, 'H', '^', { noremap = true, silent = true, desc = 'Move to first non-blank of line' })
 vim.keymap.set({ 'n', 'v' }, 'L', '$', { noremap = true, silent = true, desc = 'Move to end of line' })
@@ -111,3 +114,17 @@ vim.keymap.set('n', '<leader>qt', function()
   end
 end, { noremap = true, silent = true, desc = 'Quickfix: toggle' })
 vim.keymap.set('n', '<leader>qs', function() Snacks.picker.qflist() end, { desc = 'Snacks: Quickfix list' })
+
+local harpoon = require("harpoon")
+harpoon:setup()
+vim.keymap.set("n", "<leader>m", function() harpoon:list():add() end)
+vim.keymap.set("n", "0", function() harpoon.ui:toggle_quick_menu(harpoon:list()) end)
+vim.keymap.set("n", "<leader>1", function() harpoon:list():select(1) end)
+vim.keymap.set("n", "<leader>2", function() harpoon:list():select(2) end)
+vim.keymap.set("n", "<leader>3", function() harpoon:list():select(3) end)
+vim.keymap.set("n", "<leader>4", function() harpoon:list():select(4) end)
+vim.keymap.set("n", "<leader>5", function() harpoon:list():select(5) end)
+vim.keymap.set("n", "<leader>6", function() harpoon:list():select(6) end)
+vim.keymap.set("n", "<leader>7", function() harpoon:list():select(7) end)
+vim.keymap.set("n", "<leader>8", function() harpoon:list():select(8) end)
+vim.keymap.set("n", "<leader>9", function() harpoon:list():select(9) end)
