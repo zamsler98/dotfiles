@@ -4,7 +4,6 @@ return {
     lazy = false,
     opts = {
         dashboard = { enabled = true },
-        lazygit = { enabled = true },
         picker = {
             formatters = {
                 file = {
