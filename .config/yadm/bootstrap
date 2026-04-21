@@ -23,6 +23,11 @@ read_package_list() {
 }
 
 echo "==> Installing pacman packages..."
+if ! command -v pacman &>/dev/null; then
+    echo "Error: pacman is required to run this bootstrap script"
+    exit 1
+fi
+
 read_package_list "$PACMAN_PACKAGES_FILE" pacman_packages
 if (( ${#pacman_packages[@]} > 0 )); then
     sudo pacman -S --needed "${pacman_packages[@]}"
@@ -38,6 +43,10 @@ fi
 export NVM_DIR="$HOME/.nvm"
 # shellcheck source=/dev/null
 [[ -s "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"
+if ! command -v nvm &>/dev/null; then
+    echo "Error: nvm is not available after installation"
+    exit 1
+fi
 
 echo "==> Installing Node LTS..."
 nvm install --lts

@@ -22,6 +22,8 @@ Personal dotfiles managed with [yadm](https://yadm.io/).
    yadm bootstrap
    ```
 
+   This bootstrap flow is intended for Arch-based systems and expects `pacman` to be available.
+
    yadm automatically runs `~/.config/yadm/bootstrap`, which will:
    - Install packages listed in `~/.config/yadm/packages/pacman.txt`
    - Install `nvm`
