@@ -37,7 +37,10 @@ fi
 
 echo "==> Installing nvm..."
 if [[ ! -d "$HOME/.nvm" ]]; then
-    curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/HEAD/install.sh | bash
+    nvm_install_script="$(mktemp)"
+    trap 'rm -f "$nvm_install_script"' EXIT
+    curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/HEAD/install.sh -o "$nvm_install_script"
+    bash "$nvm_install_script"
 fi
 
 export NVM_DIR="$HOME/.nvm"
@@ -50,6 +53,7 @@ fi
 
 echo "==> Installing Node LTS..."
 nvm install --lts
+nvm alias default 'lts/*'
 nvm use --lts
 
 echo "==> Installing npm globals..."
