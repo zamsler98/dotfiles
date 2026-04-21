@@ -1,9 +1,0 @@
-# npm global packages
-# One package per line. Supports comments with #.
-#
-# Examples:
-# typescript
-# eslint
-# @antfu/ni
-
-@github/copilot

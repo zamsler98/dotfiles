@@ -1,56 +1,54 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-set -e
+set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PACKAGES_DIR="$HOME/.config/yadm/packages"
+PACMAN_PACKAGES_FILE="$PACKAGES_DIR/pacman.txt"
+NPM_GLOBALS_FILE="$PACKAGES_DIR/npm-globals.txt"
 
-echo "Bootstrapping dotfiles..."
+read_package_list() {
+    local file="$1"
+    local -n packages_ref="$2"
+    local line
 
-SSH_KEY="$HOME/.ssh/id_ed25519"
+    packages_ref=()
 
-setup_ssh() {
-    echo ""
-    echo "=== SSH Setup for GitHub ==="
+    [[ -f "$file" ]] || return 0
 
-    if [[ -f "$SSH_KEY" ]]; then
-        echo "SSH key already exists at $SSH_KEY"
-    else
-        echo "Generating new SSH key..."
-        mkdir -p "$HOME/.ssh"
-        ssh-keygen -t ed25519 -f "$SSH_KEY" -N "" -C "$(whoami)@$(hostname)"
-        echo "SSH key generated."
-    fi
-
-    echo ""
-    echo "Add this public key to GitHub (https://github.com/settings/keys):"
-    echo ""
-    cat "${SSH_KEY}.pub"
-    echo ""
-
-    read -p "Press Enter after adding the key to GitHub..."
-
-    echo "Testing GitHub connection..."
-    if ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
-        echo "GitHub SSH connection successful!"
-    else
-        echo "Warning: Could not verify GitHub connection. You may need to troubleshoot."
-    fi
-
-    # Switch yadm remote to SSH if currently HTTPS
-    current_remote=$(yadm remote get-url origin 2>/dev/null || echo "")
-    if [[ "$current_remote" == https://github.com/* ]]; then
-        ssh_remote=$(echo "$current_remote" | sed 's|https://github.com/|git@github.com:|')
-        echo "Switching yadm remote to SSH..."
-        yadm remote set-url origin "$ssh_remote"
-        echo "Remote updated to: $ssh_remote"
-    fi
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ -z "${line//[[:space:]]/}" ]] && continue
+        packages_ref+=("$line")
+    done < "$file"
 }
 
-setup_ssh
+echo "==> Installing pacman packages..."
+read_package_list "$PACMAN_PACKAGES_FILE" pacman_packages
+if (( ${#pacman_packages[@]} > 0 )); then
+    sudo pacman -S --needed "${pacman_packages[@]}"
+else
+    echo "No pacman packages listed; skipping"
+fi
 
-# Install/sync packages
-chmod +x "$SCRIPT_DIR/packages.sh"
-"$SCRIPT_DIR/packages.sh"
+echo "==> Installing nvm..."
+if [[ ! -d "$HOME/.nvm" ]]; then
+    curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/HEAD/install.sh | bash
+fi
 
-# Make zsh the default shell
-chsh -s $(which zsh)
+export NVM_DIR="$HOME/.nvm"
+# shellcheck source=/dev/null
+[[ -s "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"
+
+echo "==> Installing Node LTS..."
+nvm install --lts
+nvm use --lts
+
+echo "==> Installing npm globals..."
+read_package_list "$NPM_GLOBALS_FILE" npm_globals
+if (( ${#npm_globals[@]} > 0 )); then
+    npm install -g "${npm_globals[@]}"
+else
+    echo "No npm globals listed; skipping"
+fi
+
+echo "==> Done!"

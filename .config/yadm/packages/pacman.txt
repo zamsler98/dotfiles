@@ -1,0 +1,21 @@
+# Shell
+zsh
+tmux
+
+# Editor
+neovim
+
+# Terminal
+wezterm
+
+# Tools
+git
+curl
+wget
+fzf
+ripgrep
+fd
+jq
+lazygit
+yazi
+gcc
