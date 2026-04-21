@@ -7,7 +7,7 @@ Personal dotfiles managed with [yadm](https://yadm.io/).
 1. Install yadm:
    ```bash
    # Arch Linux
-   sudo pacman -S yadm
+   pacman -S yadm
 
    # Ubuntu/Debian
    sudo apt install yadm
