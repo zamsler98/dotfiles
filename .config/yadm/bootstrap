@@ -36,6 +36,7 @@ else
 fi
 
 echo "==> Installing nvm..."
+export WSL_DISTRO_NAME="${WSL_DISTRO_NAME:-Arch}"
 if [[ ! -d "$HOME/.nvm" ]]; then
     nvm_install_script="$(mktemp)"
     trap 'rm -f "$nvm_install_script"' EXIT
