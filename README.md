@@ -18,7 +18,7 @@ Personal dotfiles managed with [yadm](https://yadm.io/).
 
 2. Clone your dotfiles and run the bootstrap script:
    ```bash
-   yadm clone https://github.com/<username>/dotfiles.git
+   yadm clone https://github.com/zamsler98/dotfiles.git
    yadm bootstrap
    ```
 
