@@ -30,7 +30,7 @@ fi
 
 read_package_list "$PACMAN_PACKAGES_FILE" pacman_packages
 if (( ${#pacman_packages[@]} > 0 )); then
-    sudo pacman -S --needed "${pacman_packages[@]}"
+    pacman -S --needed "${pacman_packages[@]}"
 else
     echo "No pacman packages listed; skipping"
 fi
