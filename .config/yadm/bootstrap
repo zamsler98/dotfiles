@@ -54,7 +54,6 @@ fi
 echo "==> Installing Node LTS..."
 nvm install --lts
 nvm alias default 'lts/*'
-nvm use --lts
 
 echo "==> Installing npm globals..."
 read_package_list "$NPM_GLOBALS_FILE" npm_globals
