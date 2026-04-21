@@ -16,21 +16,38 @@ Personal dotfiles managed with [yadm](https://yadm.io/).
    brew install yadm
    ```
 
-2. Clone via HTTPS and bootstrap:
+2. Clone your dotfiles and run the bootstrap script:
    ```bash
    yadm clone https://github.com/<username>/dotfiles.git
    yadm bootstrap
    ```
 
-   The bootstrap script will:
-   - Generate an SSH key if one doesn't exist
-   - Display the public key for you to add to GitHub
-   - Switch the remote to SSH after setup
+   This bootstrap flow is intended for Arch-based systems and expects `pacman` to be available.
+
+   yadm automatically runs `~/.config/yadm/bootstrap`, which will:
+   - Install packages listed in `~/.config/yadm/packages/pacman.txt`
+   - Install `nvm`
+   - Install the current Node.js LTS release
+   - Install global npm packages listed in `~/.config/yadm/packages/npm-globals.txt`
 
 If you already have conflicting dotfiles, use `--force` to overwrite:
 ```bash
 yadm clone --force https://github.com/<username>/dotfiles.git
 ```
+
+## Package Lists
+
+Bootstrap package lists live in `~/.config/yadm/packages/`:
+
+```text
+~/.config/yadm/
+  bootstrap
+  packages/
+    pacman.txt
+    npm-globals.txt
+```
+
+Both package files support one package per line, plus blank lines and `#` comments.
 
 ## Font
 
