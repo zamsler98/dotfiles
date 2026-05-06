@@ -42,6 +42,8 @@ vim.keymap.set('n', 'K', vim.lsp.buf.hover, { desc = 'Hover' })
 vim.keymap.set('n', 'gh', function() Snacks.picker.lsp_definitions() end, { desc = 'Hover definition' })
 vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, { desc = 'Rename' })
 vim.keymap.set('n', '<leader>ca', function() Snacks.picker.lsp_code_actions() end, { desc = 'Code action' })
+vim.keymap.set('n', '<leader>fs', function() Snacks.picker.lsp_symbols() end, { desc = 'Snacks: List symbols' })
+vim.keymap.set('n', '<leader>fm', function() Snacks.picker.lsp_symbols({ filter = { kind = "Function" } }) end, { desc = 'Snacks: List functions' })
 
 -- Clipboard copy keymaps
 vim.keymap.set('v', '<leader>y', '"+y', { noremap = true, desc = 'Copy selection to clipboard' })
