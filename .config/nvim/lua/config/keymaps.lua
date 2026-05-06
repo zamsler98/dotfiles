@@ -8,7 +8,6 @@ vim.keymap.set('n', '<leader>fh', function() Snacks.picker.help() end, { desc = 
 vim.keymap.set("n", "j", function()
   return vim.v.count == 0 and "gj" or "j"
 end, { expr = true })
-
 vim.keymap.set("n", "k", function()
   return vim.v.count == 0 and "gk" or "k"
 end, { expr = true })
@@ -34,19 +33,15 @@ vim.keymap.set('n', '<leader>ur', function()
   vim.opt.relativenumber = not vim.opt.relativenumber:get()
 end, { desc = 'Toggle relative line numbers' })
 
--- Split management
-vim.keymap.set('n', '<leader>sh', ':split<CR>', { noremap = true, desc = 'Horizontal split' })
-vim.keymap.set('n', '<leader>q', ':close<CR>', { noremap = true, desc = 'Close split' })
-
 -- LSP
-vim.keymap.set('n', 'gd', vim.lsp.buf.definition, { buffer = bufnr, desc = 'Go to definition' })
-vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, { buffer = bufnr, desc = 'Go to declaration' })
-vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, { buffer = bufnr, desc = 'Go to implementation' })
-vim.keymap.set('n', 'gr', vim.lsp.buf.references, { buffer = bufnr, desc = 'Go to references' })
-vim.keymap.set('n', 'K', vim.lsp.buf.hover, { buffer = bufnr, desc = 'Hover' })
-vim.keymap.set('n', 'gh', vim.lsp.buf.definition, { buffer = bufnr, desc = 'Hover definition' }) 
-vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, { buffer = bufnr, desc = 'Rename' })
-vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, { buffer = bufnr, desc = 'Code action' })
+vim.keymap.set('n', 'gd', function() Snacks.picker.lsp_definitions() end, { desc = 'Go to definition' })
+vim.keymap.set('n', 'gD', function() Snacks.picker.lsp_declarations() end, { desc = 'Go to declaration' })
+vim.keymap.set('n', 'gi', function() Snacks.picker.lsp_implementations() end, { desc = 'Go to implementation' })
+vim.keymap.set('n', 'gr', function() Snacks.picker.lsp_references() end, { desc = 'Go to references' })
+vim.keymap.set('n', 'K', vim.lsp.buf.hover, { desc = 'Hover' })
+vim.keymap.set('n', 'gh', function() Snacks.picker.lsp_definitions() end, { desc = 'Hover definition' })
+vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, { desc = 'Rename' })
+vim.keymap.set('n', '<leader>ca', function() Snacks.picker.lsp_code_actions() end, { desc = 'Code action' })
 
 -- Clipboard copy keymaps
 vim.keymap.set('v', '<leader>y', '"+y', { noremap = true, desc = 'Copy selection to clipboard' })
@@ -59,31 +54,6 @@ vim.keymap.set('n', '<leader>p', '"+p', { noremap = true, desc = 'Paste from cli
 vim.keymap.set('n', '<leader>P', '"+P', { noremap = true, desc = 'Paste before from clipboard' })
 vim.keymap.set('v', '<leader>p', '"+p', { noremap = true, desc = 'Paste from clipboard' })
 vim.keymap.set('v', '<leader>P', '"+P', { noremap = true, desc = 'Paste before from clipboard' })
-
---vim.keymap.set({ "n", "v" }, "<leader>ca", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
-vim.keymap.set({ "n", "v" }, "<leader>t", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true })
-vim.keymap.set({ "n", "v" }, "<leader>cn", "<cmd>CodeCompanionChat<cr>", { noremap = true, silent = true })
-vim.keymap.set({ "n", "v" }, "<leader>ct", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true })
-vim.keymap.set({ "n", "v" }, '<leader>cs', function()
-  require("codecompanion").toggle({
-    window_opts = {
-      layout = "vertical",
-    }
-  })
-end, { noremap = true, silent = true })
-vim.keymap.set({ "n", "v" }, '<leader>cf', function()
-  require("codecompanion").toggle({
-    window_opts = {
-      layout = "float",
-      width = 0.8,
-    }
-  })
-end, { noremap = true, silent = true })
-vim.keymap.set("v", "ga", "<cmd>CodeCompanionChat Add<cr>", { noremap = true, silent = true })
-
--- Expand 'cc' into 'CodeCompanion' in the command line
-vim.cmd([[cab cc CodeCompanion]])
-
 
 vim.keymap.set({ "n", "v", "t" }, "<C-g>", function() Snacks.lazygit() end, { noremap = true, silent = true, desc = 'Toggle LazyGit' })
 
