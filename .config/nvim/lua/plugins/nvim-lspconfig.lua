@@ -22,6 +22,7 @@ return {
             vim.lsp.enable("ts_ls")
             vim.lsp.config("eslint", {})
             vim.lsp.enable("eslint")
+            vim.lsp.enable("sourcekit")
             vim.api.nvim_create_autocmd("BufWritePre", {
                 pattern = { "*.ts", "*.tsx", "*.js", "*.jsx" },
                 callback = function()
