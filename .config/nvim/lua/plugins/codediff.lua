@@ -1,4 +1,9 @@
 return {
   'esmuellert/codediff.nvim',
-  cmd = "CodeDiff"
+  cmd = "CodeDiff",
+  opts = {
+    diff = {
+        ignore_trim_whitespace = true
+    }
+  }
 }
