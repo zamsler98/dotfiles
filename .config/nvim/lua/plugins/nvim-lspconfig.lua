@@ -16,13 +16,15 @@ return {
         dependencies = { "williamboman/mason.nvim", "neovim/nvim-lspconfig" },
         config = function()
             require("mason-lspconfig").setup({
-                ensure_installed = { "ts_ls", "eslint" },
+                ensure_installed = { "ts_ls", "eslint"},
             })
             vim.lsp.config("ts_ls", {})
             vim.lsp.enable("ts_ls")
             vim.lsp.config("eslint", {})
             vim.lsp.enable("eslint")
             vim.lsp.enable("sourcekit")
+            vim.lsp.config("copilot", {})
+            vim.lsp.enable("copilot")
             vim.api.nvim_create_autocmd("BufWritePre", {
                 pattern = { "*.ts", "*.tsx", "*.js", "*.jsx" },
                 callback = function()
