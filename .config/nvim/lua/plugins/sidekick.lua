@@ -1,6 +1,7 @@
 return {
-    "folke/sidekick.nvim",
+    "zamsler98/sidekick.nvim",
     dependencies = { "github/copilot.vim" },
+    branch = "feat/cli-toggle-layout",
     opts = {
         cli = {
             win = {
@@ -19,11 +20,11 @@ return {
             "<leader>a.",
             function() require("sidekick.cli").focus() end,
             desc = "Sidekick Focus",
-            mode = { "n", "t", "i", "x" },
+            mode = { "n", "t", "x" },
         },
         {
             "<leader>aa",
-            function() require("sidekick.cli").toggle() end,
+            function() require("sidekick.cli").toggle({ layout = "float" }) end,
             desc = "Sidekick Toggle CLI",
         },
         {
@@ -60,6 +61,12 @@ return {
             function() require("sidekick.cli").prompt() end,
             mode = { "n", "x" },
             desc = "Sidekick Select Prompt",
-        }
+        },
+        {
+            "<leader>al",
+            function() require("sidekick.cli").toggle({ layout = "right"}) end,
+            mode = { "n" },
+            desc = "Sidekick Toggle Right",
+        },
     }
 }
