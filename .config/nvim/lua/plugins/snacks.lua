@@ -4,6 +4,7 @@ return {
     lazy = false,
     opts = {
         dashboard = { enabled = true },
+        input = { enabled = true },
         picker = {
             formatters = {
                 file = {
