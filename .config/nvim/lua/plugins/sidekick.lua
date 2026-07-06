@@ -17,12 +17,6 @@ return {
     },
     keys = {
         {
-            "<leader>a.",
-            function() require("sidekick.cli").focus() end,
-            desc = "Sidekick Focus",
-            mode = { "n", "t", "x" },
-        },
-        {
             "<leader>aa",
             function() require("sidekick.cli").toggle({ layout = "float" }) end,
             desc = "Sidekick Toggle CLI",
