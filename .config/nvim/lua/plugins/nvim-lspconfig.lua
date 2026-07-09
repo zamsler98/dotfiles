@@ -1,16 +1,24 @@
 return {
     {
         "williamboman/mason.nvim",
-        config = true,
-        config = function() 
+        config = function()
             require("mason").setup({
                 registries = {
                     "github:mason-org/mason-registry",
                     "github:Crashdummyy/mason-registry",
                 }
             })
+
+            -- portable across machines: mason installs a prebuilt binary per-OS
+            -- and puts it on Neovim's PATH, so nvim-treesitter's `:TSUpdate` can find it
+            require("mason-registry").refresh(function()
+                local ok, pkg = pcall(require("mason-registry").get_package, "tree-sitter-cli")
+                if ok and not pkg:is_installed() then
+                    pkg:install()
+                end
+            end)
         end
-    }, 
+    },
     {
         "williamboman/mason-lspconfig.nvim",
         dependencies = { "williamboman/mason.nvim", "neovim/nvim-lspconfig" },
