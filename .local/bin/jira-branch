@@ -3,35 +3,49 @@
 # --- jira-issue: Create or switch to a git branch for a Jira ticket, and move it to In Progress if needed ---
 
 print_help() {
-    echo "Usage: jira-branch ISSUE-123 [base-branch]"
+    echo "Usage: jira-branch ISSUE-123 [base-branch] [--no-ask]"
     echo "  ISSUE-123      The Jira issue key (required)"
-    echo "  base-branch    The base branch to create from (optional, default: develop)"
+    echo "  base-branch    The base branch to create from (optional; if omitted, branches from the current branch)"
+    echo "  --no-ask       Skip confirming the generated slug before creating the branch"
     echo "  --help, -h     Show this help message and exit"
     echo
     echo "This script will:"
-    echo "  - Check for existing branches containing the Jira issue key"
-    echo "  - Create and switch to a new branch using git-new-branch if none exist"
+    echo "  - Check for existing branches containing the Jira issue key, and prompt before creating a new one if matches are found"
+    echo "  - Generate a slug from the first few words of the Jira summary, and confirm it with you (unless --no-ask is passed)"
+    echo "  - Create and switch to a new branch"
+    echo "  - Assign the Jira ticket to you if it is currently unassigned"
     echo "  - Move the Jira ticket to 'In Progress' if not already"
-    echo "  - Use AI to generate a concise, meaningful branch name based on the Jira summary and description"
     echo
     echo "Required environment variables:"
     echo "  export JIRA_DOMAIN=https://yourcompany.atlassian.net"
-    echo "  export JIRA_EMAIL=your.email@company.com"
+    echo "  export JIRA_API_USERNAME=your.email@company.com"
     echo "  export JIRA_API_TOKEN=your_api_token_here"
     echo ""
     echo "You can place these in a .env file and source it before running jira-branch:"
     echo "  . .env"
 }
 
-if [[ "$1" == "--help" || "$1" == "-h" ]]; then
-    print_help
-    exit 0
-fi
+NO_ASK=false
+args=()
+for arg in "$@"; do
+    case "$arg" in
+        --help|-h)
+            print_help
+            exit 0
+            ;;
+        --no-ask)
+            NO_ASK=true
+            ;;
+        *)
+            args+=("$arg")
+            ;;
+    esac
+done
 
-ISSUE_KEY="$1"
-BASE_BRANCH="${2:-develop}"
+ISSUE_KEY="${args[0]}"
+BASE_BRANCH="${args[1]}"
 
-echo "==> jira-branch: Processing Jira issue '$ISSUE_KEY' (base branch: $BASE_BRANCH)"
+echo "==> jira-branch: Processing Jira issue '$ISSUE_KEY' (base branch: ${BASE_BRANCH:-current branch})"
 
 if [ -z "$ISSUE_KEY" ]; then
     echo "❌ No issue key provided. Usage: $0 ISSUE-123 [base-branch]"
@@ -45,8 +59,8 @@ if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 fi
 
 # Check for required Jira environment variables
-if [ -z "$JIRA_DOMAIN" ] || [ -z "$JIRA_EMAIL" ] || [ -z "$JIRA_API_TOKEN" ]; then
-    echo "❌ Error: JIRA_DOMAIN, JIRA_EMAIL, and JIRA_API_TOKEN must be set in your shell environment."
+if [ -z "$JIRA_DOMAIN" ] || [ -z "$JIRA_API_USERNAME" ] || [ -z "$JIRA_API_TOKEN" ]; then
+    echo "❌ Error: JIRA_DOMAIN, JIRA_API_USERNAME, and JIRA_API_TOKEN must be set in your shell environment."
     exit 1
 fi
 
@@ -55,7 +69,7 @@ echo "🌐 Fetching Jira issue details from $JIRA_DOMAIN..."
 API_URL="$JIRA_DOMAIN/rest/api/3/issue/$ISSUE_KEY"
 
 response=$(curl -s \
-    -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
+    -u "$JIRA_API_USERNAME:$JIRA_API_TOKEN" \
     -H "Accept: application/json" \
     "$API_URL")
 
@@ -84,35 +98,132 @@ if [ -n "$local_matches" ] || [ -n "$remote_matches" ]; then
         echo "  Remote:"
         echo "$remote_matches"
     fi
-    exit 0
+    read -r -p "Create a new branch anyway? [y/N] " confirm
+    case "$confirm" in
+        [yY]|[yY][eE][sS])
+            echo "➡️  Proceeding to create a new branch anyway."
+            ;;
+        *)
+            echo "❎ Not creating a new branch."
+            exit 0
+            ;;
+    esac
 else
     echo "✅ No matching branches found. Proceeding to create a new branch."
 fi
 
-# AI branch name generation
-ai_prompt="Given the summary \"$summary\" and the description \"$description\", generate a short, concise, kebab-case string (no more than 5 words and under 40 characters if possible) that describes the purpose of the ticket. Only output the kebab-case string, do not include any ticket key or prefix."
-echo "🤖 Generating branch name with AI (model: github-copilot/gpt-4.1)..."
-ticket_info=$(opencode run --model github-copilot/gpt-4.1 "$ai_prompt")
-echo "AI output: $ticket_info"
-# Sanitize AI output
-sanitized=$(echo "$ticket_info" | tr '[:upper:]' '[:lower:]' | sed 's/[ _]/-/g; s/[^a-z0-9-]//g; s/--*/-/g; s/^-//; s/-$//')
-echo "Sanitized branch info: $sanitized"
-if [ -z "$sanitized" ]; then
-    echo "❌ Error: Sanitized branch name is empty after cleaning."
+# Turn free text into a kebab-case slug (no AI, no network call)
+slugify() {
+    echo "$1" \
+        | tr '[:upper:]' '[:lower:]' \
+        | sed 's/[^a-z0-9]/ /g' \
+        | tr -s ' ' ' ' \
+        | sed 's/^ //; s/ $//' \
+        | cut -d' ' -f1-5 \
+        | tr ' ' '-' \
+        | cut -c1-40 \
+        | sed 's/-$//'
+}
+
+slug=$(slugify "$summary")
+if [ -z "$slug" ]; then
+    echo "❌ Error: Slug is empty after cleaning."
     exit 1
 fi
-if [ ${#sanitized} -gt 40 ]; then
-    echo "⚠️  Warning: Branch name exceeds 40 characters."
+
+if [ "$NO_ASK" != true ]; then
+    while true; do
+        echo "🎫 Ticket: $summary"
+        echo "✅ Proposed slug: $slug"
+        read -r -p "Use this slug? [Y/n] " slug_confirm
+        case "$slug_confirm" in
+            [nN]|[nN][oO])
+                read -r -p "Enter a new slug: " new_slug
+                new_slug=$(slugify "$new_slug")
+                if [ -n "$new_slug" ]; then
+                    slug="$new_slug"
+                else
+                    echo "❌ Slug is empty after cleaning; try again."
+                fi
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
 fi
-branch_name="feature/${ISSUE_KEY}-${sanitized}"
-echo "✅ AI-generated branch name: $branch_name"
 
+branch_name="feature/${ISSUE_KEY}-${slug}"
+echo "🌱 Creating and switching to new branch: $branch_name"
 
-echo "🌱 Creating and switching to new branch using git-new-branch: $branch_name (base: $BASE_BRANCH)"
-git-new-branch "$branch_name" "$BASE_BRANCH"
-if [ $? -ne 0 ]; then
-    echo "❌ Failed to create and switch to branch: $branch_name"
+echo "Checking for local changes..."
+if ! git diff-index --quiet HEAD --; then
+    echo "❌ You have local changes. Commit, stash, or discard them before creating a new branch."
     exit 1
+fi
+echo "✓ No local changes."
+
+if [ -n "$BASE_BRANCH" ]; then
+    echo "Switching to base branch '$BASE_BRANCH'..."
+    if ! checkout_output=$(git checkout "$BASE_BRANCH" 2>&1); then
+        echo "❌ Failed to checkout base branch '$BASE_BRANCH'."
+        echo "$checkout_output"
+        exit 1
+    fi
+    echo "Pulling latest changes from '$BASE_BRANCH'..."
+    if ! pull_output=$(git pull origin "$BASE_BRANCH" 2>&1); then
+        echo "❌ Failed to pull latest changes from '$BASE_BRANCH'."
+        echo "$pull_output"
+        exit 1
+    fi
+else
+    BASE_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+    echo "No base branch specified; branching from current branch '$BASE_BRANCH'."
+    echo "Pulling latest changes for '$BASE_BRANCH'..."
+    if ! pull_output=$(git pull 2>&1); then
+        echo "❌ Failed to pull latest changes for '$BASE_BRANCH'."
+        echo "$pull_output"
+        exit 1
+    fi
+fi
+
+if git show-ref --verify --quiet refs/heads/"$branch_name"; then
+    echo "Branch '$branch_name' already exists locally. Switching to it..."
+    if ! git checkout "$branch_name"; then
+        echo "❌ Failed to checkout existing local branch '$branch_name'."
+        exit 1
+    fi
+elif git ls-remote --exit-code --heads origin "$branch_name" >/dev/null 2>&1; then
+    echo "Branch '$branch_name' exists on remote. Fetching and checking it out..."
+    git fetch origin "$branch_name" >/dev/null 2>&1
+    if ! git checkout -t origin/"$branch_name"; then
+        echo "❌ Failed to checkout remote branch '$branch_name'."
+        exit 1
+    fi
+else
+    echo "Creating and switching to new branch '$branch_name'..."
+    if ! git checkout -b "$branch_name"; then
+        echo "❌ Failed to create and checkout new branch '$branch_name'."
+        exit 1
+    fi
+fi
+echo "🚀 Branch '$branch_name' ready (base: '$BASE_BRANCH')."
+
+echo "🙋 Checking assignee for '$ISSUE_KEY'..."
+assignee_account_id=$(echo "$response" | jq -r '.fields.assignee.accountId // empty')
+if [ -z "$assignee_account_id" ]; then
+    echo "➡️  Ticket is unassigned. Assigning to you ($JIRA_API_USERNAME)..."
+    my_account_id=$(curl -s -u "$JIRA_API_USERNAME:$JIRA_API_TOKEN" -H "Accept: application/json" "$JIRA_DOMAIN/rest/api/3/myself" | jq -r '.accountId // empty')
+    if [ -n "$my_account_id" ]; then
+        curl -s -X PUT -u "$JIRA_API_USERNAME:$JIRA_API_TOKEN" -H "Content-Type: application/json" \
+            --data "{\"accountId\":\"$my_account_id\"}" \
+            "$JIRA_DOMAIN/rest/api/3/issue/$ISSUE_KEY/assignee" >/dev/null
+        echo "✅ Assigned '$ISSUE_KEY' to you."
+    else
+        echo "⚠️  Warning: Could not determine your Jira accountId; skipping assignment."
+    fi
+else
+    echo "✅ '$ISSUE_KEY' is already assigned; leaving as-is."
 fi
 
 echo "🔄 Checking Jira status for '$ISSUE_KEY'..."
@@ -121,10 +232,10 @@ echo "   Current status: $status"
 if [ "$status" != "null" ]; then
     if ! echo "$status" | grep -iq "^in progress$"; then
         echo "➡️  Attempting to move '$ISSUE_KEY' to 'In Progress'..."
-        transitions_json=$(curl -s -u "$JIRA_EMAIL:$JIRA_API_TOKEN" -H "Accept: application/json" "$JIRA_DOMAIN/rest/api/3/issue/$ISSUE_KEY/transitions")
+        transitions_json=$(curl -s -u "$JIRA_API_USERNAME:$JIRA_API_TOKEN" -H "Accept: application/json" "$JIRA_DOMAIN/rest/api/3/issue/$ISSUE_KEY/transitions")
         transition_id=$(echo "$transitions_json" | jq -r '.transitions[] | select(.to.name | test("In Progress"; "i")) | .id' | head -n1)
         if [ -n "$transition_id" ]; then
-            curl -s -X POST -u "$JIRA_EMAIL:$JIRA_API_TOKEN" -H "Content-Type: application/json" \
+            curl -s -X POST -u "$JIRA_API_USERNAME:$JIRA_API_TOKEN" -H "Content-Type: application/json" \
                 --data "{\"transition\":{\"id\":\"$transition_id\"}}" \
                 "$JIRA_DOMAIN/rest/api/3/issue/$ISSUE_KEY/transitions" >/dev/null
             echo "✅ Moved '$ISSUE_KEY' to 'In Progress'."
