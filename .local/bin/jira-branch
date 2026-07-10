@@ -3,16 +3,17 @@
 # --- jira-issue: Create or switch to a git branch for a Jira ticket, and move it to In Progress if needed ---
 
 print_help() {
-    echo "Usage: jira-branch ISSUE-123 [base-branch] [--no-ask]"
+    echo "Usage: jira-branch ISSUE-123 [base-branch] [--no-ask] [--worktree]"
     echo "  ISSUE-123      The Jira issue key (required)"
     echo "  base-branch    The base branch to create from (optional; if omitted, branches from the current branch)"
     echo "  --no-ask       Skip confirming the generated slug before creating the branch"
+    echo "  --worktree     Create the branch in a new git worktree instead of switching the current checkout"
     echo "  --help, -h     Show this help message and exit"
     echo
     echo "This script will:"
     echo "  - Check for existing branches containing the Jira issue key, and prompt before creating a new one if matches are found"
     echo "  - Generate a slug from the first few words of the Jira summary, and confirm it with you (unless --no-ask is passed)"
-    echo "  - Create and switch to a new branch"
+    echo "  - Create and switch to a new branch (or add a new worktree for it, with --worktree)"
     echo "  - Assign the Jira ticket to you if it is currently unassigned"
     echo "  - Move the Jira ticket to 'In Progress' if not already"
     echo
@@ -20,12 +21,16 @@ print_help() {
     echo "  export JIRA_DOMAIN=https://yourcompany.atlassian.net"
     echo "  export JIRA_API_USERNAME=your.email@company.com"
     echo "  export JIRA_API_TOKEN=your_api_token_here"
+    echo
+    echo "Optional environment variables:"
+    echo "  export JIRA_WORKTREE_ROOT=/path/to/worktrees   # base dir for --worktree (default: a 'worktrees' dir beside the repo)"
     echo ""
     echo "You can place these in a .env file and source it before running jira-branch:"
     echo "  . .env"
 }
 
 NO_ASK=false
+WORKTREE=false
 args=()
 for arg in "$@"; do
     case "$arg" in
@@ -35,6 +40,9 @@ for arg in "$@"; do
             ;;
         --no-ask)
             NO_ASK=true
+            ;;
+        --worktree)
+            WORKTREE=true
             ;;
         *)
             args+=("$arg")
@@ -161,60 +169,109 @@ if [ "$NO_ASK" != true ]; then
 fi
 
 branch_name="feature/${ISSUE_KEY}-${slug}"
-echo "🌱 Creating and switching to new branch: $branch_name"
 
-echo "Checking for local changes..."
-if ! git diff-index --quiet HEAD --; then
-    echo "❌ You have local changes. Commit, stash, or discard them before creating a new branch."
-    exit 1
-fi
-echo "✓ No local changes."
+if [ "$WORKTREE" = true ]; then
+    echo "🌱 Creating a new worktree for branch: $branch_name"
 
-if [ -n "$BASE_BRANCH" ]; then
-    echo "Switching to base branch '$BASE_BRANCH'..."
-    if ! checkout_output=$(git checkout "$BASE_BRANCH" 2>&1); then
-        echo "❌ Failed to checkout base branch '$BASE_BRANCH'."
-        echo "$checkout_output"
-        exit 1
+    repo_root=$(git rev-parse --show-toplevel)
+    worktree_root="${JIRA_WORKTREE_ROOT:-$(dirname "$repo_root")/worktrees}"
+    worktree_path="$worktree_root/$branch_name"
+
+    if [ -z "$BASE_BRANCH" ]; then
+        BASE_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+        echo "No base branch specified; basing from current branch '$BASE_BRANCH'."
     fi
-    echo "Pulling latest changes from '$BASE_BRANCH'..."
-    if ! pull_output=$(git pull origin "$BASE_BRANCH" 2>&1); then
-        echo "❌ Failed to pull latest changes from '$BASE_BRANCH'."
-        echo "$pull_output"
-        exit 1
+
+    echo "Fetching latest '$BASE_BRANCH' from origin..."
+    git fetch origin "$BASE_BRANCH" >/dev/null 2>&1
+    if git rev-parse --verify --quiet "origin/$BASE_BRANCH" >/dev/null; then
+        base_ref="origin/$BASE_BRANCH"
+    else
+        base_ref="$BASE_BRANCH"
     fi
+
+    if git worktree list --porcelain | grep -qFx "branch refs/heads/$branch_name"; then
+        worktree_path=$(git worktree list --porcelain | awk -v b="branch refs/heads/$branch_name" '/^worktree /{p=substr($0,10)} $0==b{print p}')
+        echo "✅ Worktree for '$branch_name' already exists at: $worktree_path"
+    elif git show-ref --verify --quiet refs/heads/"$branch_name"; then
+        echo "Branch '$branch_name' already exists locally. Adding a worktree for it..."
+        if ! git worktree add "$worktree_path" "$branch_name"; then
+            echo "❌ Failed to add worktree for existing local branch '$branch_name'."
+            exit 1
+        fi
+    elif git ls-remote --exit-code --heads origin "$branch_name" >/dev/null 2>&1; then
+        echo "Branch '$branch_name' exists on remote. Fetching and adding a worktree tracking it..."
+        git fetch origin "$branch_name" >/dev/null 2>&1
+        if ! git worktree add --track -b "$branch_name" "$worktree_path" "origin/$branch_name"; then
+            echo "❌ Failed to add worktree for remote branch '$branch_name'."
+            exit 1
+        fi
+    else
+        echo "Creating worktree and new branch '$branch_name' from '$base_ref'..."
+        if ! git worktree add -b "$branch_name" "$worktree_path" "$base_ref"; then
+            echo "❌ Failed to create worktree for new branch '$branch_name'."
+            exit 1
+        fi
+    fi
+    echo "🚀 Worktree ready (base: '$BASE_BRANCH'):"
+    echo "   $worktree_path"
+    echo "Run: cd \"$worktree_path\""
 else
-    BASE_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-    echo "No base branch specified; branching from current branch '$BASE_BRANCH'."
-    echo "Pulling latest changes for '$BASE_BRANCH'..."
-    if ! pull_output=$(git pull 2>&1); then
-        echo "❌ Failed to pull latest changes for '$BASE_BRANCH'."
-        echo "$pull_output"
-        exit 1
-    fi
-fi
+    echo "🌱 Creating and switching to new branch: $branch_name"
 
-if git show-ref --verify --quiet refs/heads/"$branch_name"; then
-    echo "Branch '$branch_name' already exists locally. Switching to it..."
-    if ! git checkout "$branch_name"; then
-        echo "❌ Failed to checkout existing local branch '$branch_name'."
+    echo "Checking for local changes..."
+    if ! git diff-index --quiet HEAD --; then
+        echo "❌ You have local changes. Commit, stash, or discard them before creating a new branch."
         exit 1
     fi
-elif git ls-remote --exit-code --heads origin "$branch_name" >/dev/null 2>&1; then
-    echo "Branch '$branch_name' exists on remote. Fetching and checking it out..."
-    git fetch origin "$branch_name" >/dev/null 2>&1
-    if ! git checkout -t origin/"$branch_name"; then
-        echo "❌ Failed to checkout remote branch '$branch_name'."
-        exit 1
+    echo "✓ No local changes."
+
+    if [ -n "$BASE_BRANCH" ]; then
+        echo "Switching to base branch '$BASE_BRANCH'..."
+        if ! checkout_output=$(git checkout "$BASE_BRANCH" 2>&1); then
+            echo "❌ Failed to checkout base branch '$BASE_BRANCH'."
+            echo "$checkout_output"
+            exit 1
+        fi
+        echo "Pulling latest changes from '$BASE_BRANCH'..."
+        if ! pull_output=$(git pull origin "$BASE_BRANCH" 2>&1); then
+            echo "❌ Failed to pull latest changes from '$BASE_BRANCH'."
+            echo "$pull_output"
+            exit 1
+        fi
+    else
+        BASE_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+        echo "No base branch specified; branching from current branch '$BASE_BRANCH'."
+        echo "Pulling latest changes for '$BASE_BRANCH'..."
+        if ! pull_output=$(git pull 2>&1); then
+            echo "❌ Failed to pull latest changes for '$BASE_BRANCH'."
+            echo "$pull_output"
+            exit 1
+        fi
     fi
-else
-    echo "Creating and switching to new branch '$branch_name'..."
-    if ! git checkout -b "$branch_name"; then
-        echo "❌ Failed to create and checkout new branch '$branch_name'."
-        exit 1
+
+    if git show-ref --verify --quiet refs/heads/"$branch_name"; then
+        echo "Branch '$branch_name' already exists locally. Switching to it..."
+        if ! git checkout "$branch_name"; then
+            echo "❌ Failed to checkout existing local branch '$branch_name'."
+            exit 1
+        fi
+    elif git ls-remote --exit-code --heads origin "$branch_name" >/dev/null 2>&1; then
+        echo "Branch '$branch_name' exists on remote. Fetching and checking it out..."
+        git fetch origin "$branch_name" >/dev/null 2>&1
+        if ! git checkout -t origin/"$branch_name"; then
+            echo "❌ Failed to checkout remote branch '$branch_name'."
+            exit 1
+        fi
+    else
+        echo "Creating and switching to new branch '$branch_name'..."
+        if ! git checkout -b "$branch_name"; then
+            echo "❌ Failed to create and checkout new branch '$branch_name'."
+            exit 1
+        fi
     fi
+    echo "🚀 Branch '$branch_name' ready (base: '$BASE_BRANCH')."
 fi
-echo "🚀 Branch '$branch_name' ready (base: '$BASE_BRANCH')."
 
 echo "🙋 Checking assignee for '$ISSUE_KEY'..."
 assignee_account_id=$(echo "$response" | jq -r '.fields.assignee.accountId // empty')
