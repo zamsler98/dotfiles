@@ -60,7 +60,7 @@ vim.keymap.set('v', '<leader>P', '"+P', { noremap = true, desc = 'Paste before f
 vim.keymap.set({ "n", "v", "t" }, "<C-g>", function() Snacks.lazygit() end, { noremap = true, silent = true, desc = 'Toggle LazyGit' })
 
 -- Exit terminal mode with Esc
-vim.keymap.set('t', '<Esc>', '<C-\\><C-n>', { desc = 'Terminal: Exit to Normal mode' })
+vim.keymap.set('t', '<C-q>', '<C-\\><C-n>', { desc = 'Terminal: Exit to Normal mode' })
 
 -- Move to start/end of line with H/L in normal and visual modes
 vim.keymap.set({ 'n', 'v' }, 'H', '^', { noremap = true, silent = true, desc = 'Move to first non-blank of line' })
