@@ -113,16 +113,22 @@ else
 fi
 
 # Turn free text into a kebab-case slug (no AI, no network call)
+# Second arg is the max character length; pass 0 for no limit.
 slugify() {
-    echo "$1" \
+    local maxlen="${2:-50}"
+    local slug
+    slug=$(echo "$1" \
         | tr '[:upper:]' '[:lower:]' \
         | sed 's/[^a-z0-9]/ /g' \
         | tr -s ' ' ' ' \
         | sed 's/^ //; s/ $//' \
         | cut -d' ' -f1-5 \
         | tr ' ' '-' \
-        | cut -c1-40 \
-        | sed 's/-$//'
+        | sed 's/-$//')
+    if [ "$maxlen" -gt 0 ]; then
+        slug=$(echo "$slug" | cut -c1-"$maxlen" | sed 's/-$//')
+    fi
+    echo "$slug"
 }
 
 slug=$(slugify "$summary")
@@ -139,9 +145,10 @@ if [ "$NO_ASK" != true ]; then
         case "$slug_confirm" in
             [nN]|[nN][oO])
                 read -r -p "Enter a new slug: " new_slug
-                new_slug=$(slugify "$new_slug")
+                new_slug=$(slugify "$new_slug" 0)
                 if [ -n "$new_slug" ]; then
                     slug="$new_slug"
+                    break
                 else
                     echo "❌ Slug is empty after cleaning; try again."
                 fi
