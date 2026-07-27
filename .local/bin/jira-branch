@@ -174,7 +174,7 @@ if [ "$WORKTREE" = true ]; then
     echo "🌱 Creating a new worktree for branch: $branch_name"
 
     repo_root=$(git rev-parse --show-toplevel)
-    worktree_root="${JIRA_WORKTREE_ROOT:-$(dirname "$repo_root")/worktrees}"
+    worktree_root="${JIRA_WORKTREE_ROOT:-$(dirname "$repo_root")}"
     worktree_path="$worktree_root/$branch_name"
 
     if [ -z "$BASE_BRANCH" ]; then
