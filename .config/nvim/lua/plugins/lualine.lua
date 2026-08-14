@@ -24,7 +24,18 @@ return {
             sections = {
                 lualine_a = { 'mode' },                                -- Current Vim mode (NORMAL / INSERT / etc.)
                 lualine_b = { 'branch', 'diff', 'diagnostics' },       -- Git + diagnostics
-                lualine_c = { { 'filename', path = 1, shorting_target = 50 } },                            -- Current file path/name (relative, shorting target 50)
+                lualine_c = {
+                    { 'filename', path = 1, shorting_target = 50 },                        -- Current file path/name (relative, shorting target 50)
+                    {
+                        function()
+                            return require('arrow.statusline').text_for_statusline_with_icons()
+                        end,
+                        cond = function()
+                            local ok, arrow_statusline = pcall(require, 'arrow.statusline')
+                            return ok and arrow_statusline.is_on_arrow_file() ~= nil
+                        end,
+                    },
+                },
                 lualine_x = { 'encoding', 'fileformat', 'filetype' },  -- UTF-8, Unix, Lua, etc.
                 lualine_y = { 'progress' },                            -- Shows percentage through file
                 lualine_z = { 'location' },                            -- Line/column
