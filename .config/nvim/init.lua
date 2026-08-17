@@ -22,6 +22,7 @@ vim.opt.showbreak = "↪ "      -- Show this symbol at the start of wrapped line
 vim.opt.breakindent = true    -- Indent wrapped lines to match line start
 
 vim.opt.cursorline = true
+vim.opt.winborder = "rounded"
 vim.lsp.codelens.enable(true)
 
 -- Make sure Neovim sees ya
@@ -33,7 +34,6 @@ require("config.keymaps")
 vim.cmd("colorscheme gruvbox-material")
 
 vim.cmd [[highlight! link NormalFloat Normal]]
-vim.cmd [[highlight! link FloatBorder Normal]]
 
 if vim.fn.has('wsl') == 1 then
     vim.g.clipboard = {
