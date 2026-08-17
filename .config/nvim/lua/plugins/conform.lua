@@ -14,6 +14,7 @@ return {
                     css = { "prettier" },
                     markdown = { "prettier" },
                     yaml = { "prettier" },
+                    rust = { "rustfmt" },
                 },
                 format_on_save = {
                     timeout_ms = 2000,

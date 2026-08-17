@@ -24,7 +24,13 @@ return {
         dependencies = { "williamboman/mason.nvim", "neovim/nvim-lspconfig" },
         config = function()
             require("mason-lspconfig").setup({
-                ensure_installed = { "ts_ls", "eslint"},
+                -- rust_analyzer is installed here via mason so rustaceanvim can find the
+                -- binary, but excluded from automatic_enable: rustaceanvim manages that
+                -- LSP client itself (see plugins/rustaceanvim.lua). Without the exclusion,
+                -- mason-lspconfig auto-enables a second plain rust-analyzer client, causing
+                -- duplicate hover/diagnostics.
+                ensure_installed = { "ts_ls", "eslint", "rust_analyzer" },
+                automatic_enable = { exclude = { "rust_analyzer" } },
             })
             vim.lsp.config("ts_ls", {})
             vim.lsp.enable("ts_ls")
