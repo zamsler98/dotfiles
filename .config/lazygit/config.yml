@@ -1,5 +1,5 @@
 git:
-  pagers:
-    - pager: delta --dark --paging=never -s --line-numbers
-    - externalDiffCommand: difft --color=always
-
+  diffRenderers:
+    - command: delta --dark --paging=never -s --line-numbers
+    - command: difft --color=always
+      type: extDiff
