@@ -62,5 +62,36 @@ return {
             mode = { "n" },
             desc = "Sidekick Toggle Right",
         },
+        {
+            "<leader>ac",
+            function()
+                -- Read the selected lines directly: sidekick's context code breaks when
+                -- codediff has windows in other tabs (getcwd is given a window ID)
+                local buf = vim.api.nvim_get_current_buf()
+                local first, last = vim.fn.line("v"), vim.fn.line(".")
+                if first > last then
+                    first, last = last, first
+                end
+                vim.cmd("normal! \27")
+                local name = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ":.")
+                local code = vim.api.nvim_buf_get_lines(buf, first - 1, last, false)
+                vim.ui.input({ prompt = "Comment: " }, function(comment)
+                    if not comment or comment == "" then
+                        return
+                    end
+                    local text = {
+                        { { comment } },
+                        {},
+                        { { ("%s:%d-%d"):format(name, first, last) } },
+                    }
+                    for _, line in ipairs(code) do
+                        table.insert(text, { { line } })
+                    end
+                    require("sidekick.cli").send({ text = text })
+                end)
+            end,
+            mode = { "x" },
+            desc = "Comment on Selection",
+        },
     }
 }
