@@ -138,6 +138,48 @@ local function draft_buf()
     vim.keymap.set("n", "q", function()
         vim.api.nvim_win_close(0, true)
     end, { buffer = buf, nowait = true, desc = "Hide draft" })
+
+    -- Like <C-f>/<C-b> in the sidekick terminal: pick files and insert them as @path refs
+    local function pick(source)
+        return function()
+            local win = vim.api.nvim_get_current_win()
+            local row, col = unpack(vim.api.nvim_win_get_cursor(win))
+            local line = vim.api.nvim_get_current_line()
+            -- In normal mode insert after the cursor character, in insert mode at the cursor
+            if vim.fn.mode() == "n" and #line > 0 then
+                col = col + 1
+            end
+            vim.cmd("stopinsert")
+            local Picker = require("sidekick.cli.picker")
+            local picker = Picker.get()
+            if not picker then
+                return
+            end
+            picker.open(source, function(items)
+                local Loc = require("sidekick.cli.context.location")
+                local refs = {}
+                for _, item in ipairs(items) do
+                    local chunks = Loc.get(item, { kind = "file" })[1] or {}
+                    refs[#refs + 1] = table.concat(vim.tbl_map(function(c) return c[1] end, chunks))
+                end
+                vim.schedule(function()
+                    if #refs == 0 or not vim.api.nvim_win_is_valid(win) then
+                        return
+                    end
+                    vim.api.nvim_set_current_win(win)
+                    local text = table.concat(refs, " ") .. " "
+                    if col > 0 and not line:sub(col, col):match("%s") then
+                        text = " " .. text
+                    end
+                    vim.api.nvim_buf_set_text(buf, row - 1, col, row - 1, col, { text })
+                    vim.api.nvim_win_set_cursor(win, { row, col + #text })
+                    vim.cmd("startinsert")
+                end)
+            end)
+        end
+    end
+    vim.keymap.set({ "n", "i" }, "<C-f>", pick("files"), { buffer = buf, nowait = true, desc = "Insert @file refs" })
+    vim.keymap.set({ "n", "i" }, "<C-b>", pick("buffers"), { buffer = buf, nowait = true, desc = "Insert @buffer refs" })
     return buf
 end
 
@@ -158,7 +200,7 @@ local function draft_open()
         col = math.floor((vim.o.columns - width) / 2),
         style = "minimal",
         border = "rounded",
-        title = " Sidekick draft (<C-s> send, q hide) ",
+        title = " Sidekick draft (<C-s> send, <C-f> files, <C-b> buffers, q hide) ",
         title_pos = "center",
     })
     vim.wo[draft.win].wrap = true
