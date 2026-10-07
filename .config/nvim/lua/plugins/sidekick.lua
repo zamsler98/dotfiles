@@ -8,7 +8,11 @@ end
 -- Lines of a git-style diff for the codediff hunks touching [first, last] in buf.
 -- Returns nil when not in a codediff session or when no hunk touches the selection.
 local function codediff_patch(buf, first, last)
-    local lifecycle = require("codediff.ui.lifecycle")
+    -- codediff is lazy-loaded; if it isn't loaded there can't be a session
+    local lifecycle = package.loaded["codediff.ui.lifecycle"]
+    if not lifecycle then
+        return nil
+    end
     local tabpage = vim.api.nvim_get_current_tabpage()
     local session = lifecycle.get_session(tabpage)
     if not session or not session.stored_diff_result then
@@ -100,6 +104,130 @@ local function codediff_patch(buf, first, last)
     return out
 end
 
+-- A single draft prompt that the add mappings append to. It persists until sent,
+-- so the whole prompt can be written in Neovim before it goes to the CLI.
+local draft = { buf = nil, win = nil }
+
+local function draft_buf()
+    if draft.buf and vim.api.nvim_buf_is_valid(draft.buf) then
+        return draft.buf
+    end
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.bo[buf].bufhidden = "hide"
+    vim.bo[buf].filetype = "markdown"
+    vim.api.nvim_buf_set_name(buf, "sidekick://draft")
+    draft.buf = buf
+
+    vim.keymap.set({ "n", "i" }, "<C-s>", function()
+        local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+        if vim.trim(table.concat(lines, "\n")) == "" then
+            vim.notify("Draft is empty, nothing sent", vim.log.levels.WARN)
+            return
+        end
+        vim.cmd("stopinsert")
+        if draft.win and vim.api.nvim_win_is_valid(draft.win) then
+            vim.api.nvim_win_close(draft.win, true)
+        end
+        vim.api.nvim_buf_set_lines(buf, 0, -1, false, {})
+        local text = {}
+        for _, l in ipairs(lines) do
+            table.insert(text, { { l } })
+        end
+        require("sidekick.cli").send({ text = text })
+    end, { buffer = buf, nowait = true, desc = "Send draft to CLI" })
+    vim.keymap.set("n", "q", function()
+        vim.api.nvim_win_close(0, true)
+    end, { buffer = buf, nowait = true, desc = "Hide draft" })
+    return buf
+end
+
+-- Open the draft window, or focus it if it's already open
+local function draft_open()
+    if draft.win and vim.api.nvim_win_is_valid(draft.win) then
+        vim.api.nvim_set_current_win(draft.win)
+        return
+    end
+    local buf = draft_buf()
+    local width = math.floor(vim.o.columns * 0.8)
+    local height = math.floor(vim.o.lines * 0.8)
+    draft.win = vim.api.nvim_open_win(buf, true, {
+        relative = "editor",
+        width = width,
+        height = height,
+        row = math.floor((vim.o.lines - height) / 2),
+        col = math.floor((vim.o.columns - width) / 2),
+        style = "minimal",
+        border = "rounded",
+        title = " Sidekick draft (<C-s> send, q hide) ",
+        title_pos = "center",
+    })
+    vim.wo[draft.win].wrap = true
+end
+
+local function draft_toggle()
+    if draft.win and vim.api.nvim_win_is_valid(draft.win) then
+        vim.api.nvim_win_close(draft.win, true)
+    else
+        draft_open()
+    end
+end
+
+-- Append lines to the draft, separated from what's already there by a blank line
+local function draft_add(lines)
+    local buf = draft_buf()
+    local existing = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+    local empty = #existing == 1 and existing[1] == ""
+    if empty then
+        vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+    else
+        local block = existing[#existing] == "" and {} or { "" }
+        vim.list_extend(block, lines)
+        vim.api.nvim_buf_set_lines(buf, -1, -1, false, block)
+    end
+    draft_open()
+    vim.api.nvim_win_set_cursor(draft.win, { vim.api.nvim_buf_line_count(buf), 0 })
+end
+
+-- Render a sidekick message template (e.g. "{selection}") and append it to the draft
+-- instead of sending it straight to the CLI. Must run before leaving visual mode.
+local function draft_add_context(msg)
+    local str = require("sidekick.cli").render({ msg = msg })
+    if vim.fn.mode():match("^[vV\22]") then
+        vim.cmd("normal! \27")
+    end
+    if not str or str == "" then
+        vim.notify("Nothing to add", vim.log.levels.WARN)
+        return
+    end
+    draft_add(vim.split(str, "\n", { plain = true }))
+end
+
+-- sidekick's context picks the most recent window from any tab, then calls
+-- getcwd(win) with it, which fails for windows in other tabs (e.g. codediff).
+-- Same logic, limited to the current tab.
+local function patch_sidekick_ctx()
+    local Context = require("sidekick.cli.context")
+    Context.ctx = function()
+        local wins = vim.tbl_filter(function(w)
+            return vim.bo[vim.api.nvim_win_get_buf(w)].filetype ~= "sidekick_terminal"
+        end, vim.api.nvim_tabpage_list_wins(0))
+        table.sort(wins, function(a, b)
+            return (vim.w[a].sidekick_visit or 0) > (vim.w[b].sidekick_visit or 0)
+        end)
+        local win = wins[1] or vim.api.nvim_get_current_win()
+        local buf = vim.api.nvim_win_get_buf(win)
+        local cursor = vim.api.nvim_win_get_cursor(win)
+        return {
+            win = win,
+            buf = buf,
+            cwd = vim.fs.normalize(vim.fn.getcwd(win)),
+            row = cursor[1],
+            col = cursor[2] + 1,
+            range = Context.selection(buf),
+        }
+    end
+end
+
 return {
     "zamsler98/sidekick.nvim",
     dependencies = { "github/copilot.vim" },
@@ -117,6 +245,10 @@ return {
             }
         }
     },
+    config = function(_, opts)
+        require("sidekick").setup(opts)
+        patch_sidekick_ctx()
+    end,
     keys = {
         {
             "<leader>aa",
@@ -136,27 +268,40 @@ return {
             desc = "Detach a CLI Session",
         },
         {
+            "<leader>ae",
+            draft_toggle,
+            desc = "Toggle Sidekick Draft",
+        },
+        {
             "<leader>at",
-            function() require("sidekick.cli").send({ msg = "{this}" }) end,
+            function() draft_add_context("{this}") end,
             mode = { "x", "n" },
-            desc = "Send This",
+            desc = "Add This to Draft",
         },
         {
             "<leader>af",
-            function() require("sidekick.cli").send({ msg = "{file}" }) end,
-            desc = "Send File",
+            function() draft_add_context("{file}") end,
+            desc = "Add File to Draft",
         },
         {
             "<leader>av",
-            function() require("sidekick.cli").send({ msg = "{selection}" }) end,
+            function() draft_add_context("{selection}") end,
             mode = { "x" },
-            desc = "Send Visual Selection",
+            desc = "Add Visual Selection to Draft",
         },
         {
             "<leader>ap",
-            function() require("sidekick.cli").prompt() end,
+            function()
+                require("sidekick.cli").prompt({
+                    cb = function(msg)
+                        if msg and msg ~= "" then
+                            draft_add(vim.split(msg, "\n", { plain = true }))
+                        end
+                    end,
+                })
+            end,
             mode = { "n", "x" },
-            desc = "Sidekick Select Prompt",
+            desc = "Add Prompt to Draft",
         },
         {
             "<leader>al",
@@ -165,7 +310,7 @@ return {
             desc = "Sidekick Toggle Right",
         },
         {
-            "<leader>ac",
+            "<leader>ah",
             function()
                 -- Read the selection directly: sidekick's context code breaks when
                 -- codediff has windows in other tabs (getcwd is given a window ID)
@@ -176,27 +321,17 @@ return {
                 end
                 vim.cmd("normal! \27")
 
-                -- In a codediff hunk, send a git-style diff; otherwise the plain selected lines
+                -- In a codediff hunk, add a git-style diff; otherwise the plain selected lines
                 local body = codediff_patch(buf, first, last)
                 if not body then
                     local name = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ":.")
                     body = { ("%s:%d-%d"):format(name, first, last) }
                     vim.list_extend(body, vim.api.nvim_buf_get_lines(buf, first - 1, last, false))
                 end
-
-                vim.ui.input({ prompt = "Comment: " }, function(comment)
-                    if not comment or comment == "" then
-                        return
-                    end
-                    local text = { { { comment } }, {} }
-                    for _, line in ipairs(body) do
-                        table.insert(text, { { line } })
-                    end
-                    require("sidekick.cli").send({ text = text })
-                end)
+                draft_add(body)
             end,
             mode = { "x" },
-            desc = "Comment on Selection",
+            desc = "Add Hunk Diff to Draft",
         },
     }
 }
