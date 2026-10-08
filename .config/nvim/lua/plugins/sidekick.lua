@@ -118,23 +118,27 @@ local function draft_buf()
     vim.api.nvim_buf_set_name(buf, "sidekick://draft")
     draft.buf = buf
 
-    vim.keymap.set({ "n", "i" }, "<C-s>", function()
-        local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-        if vim.trim(table.concat(lines, "\n")) == "" then
-            vim.notify("Draft is empty, nothing sent", vim.log.levels.WARN)
-            return
+    local function send(submit)
+        return function()
+            local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+            if vim.trim(table.concat(lines, "\n")) == "" then
+                vim.notify("Draft is empty, nothing sent", vim.log.levels.WARN)
+                return
+            end
+            vim.cmd("stopinsert")
+            if draft.win and vim.api.nvim_win_is_valid(draft.win) then
+                vim.api.nvim_win_close(draft.win, true)
+            end
+            vim.api.nvim_buf_set_lines(buf, 0, -1, false, {})
+            local text = {}
+            for _, l in ipairs(lines) do
+                table.insert(text, { { l } })
+            end
+            require("sidekick.cli").send({ text = text, submit = submit })
         end
-        vim.cmd("stopinsert")
-        if draft.win and vim.api.nvim_win_is_valid(draft.win) then
-            vim.api.nvim_win_close(draft.win, true)
-        end
-        vim.api.nvim_buf_set_lines(buf, 0, -1, false, {})
-        local text = {}
-        for _, l in ipairs(lines) do
-            table.insert(text, { { l } })
-        end
-        require("sidekick.cli").send({ text = text })
-    end, { buffer = buf, nowait = true, desc = "Send draft to CLI" })
+    end
+    vim.keymap.set({ "n", "i" }, "<C-s>", send(true), { buffer = buf, nowait = true, desc = "Send and submit draft" })
+    vim.keymap.set({ "n", "i" }, "<M-s>", send(false), { buffer = buf, nowait = true, desc = "Send draft without submitting" })
     vim.keymap.set("n", "q", function()
         vim.api.nvim_win_close(0, true)
     end, { buffer = buf, nowait = true, desc = "Hide draft" })
@@ -200,7 +204,7 @@ local function draft_open()
         col = math.floor((vim.o.columns - width) / 2),
         style = "minimal",
         border = "rounded",
-        title = " Sidekick draft (<C-s> send, <C-f> files, <C-b> buffers, q hide) ",
+        title = " Sidekick draft (<C-s> submit, <M-s> send only, <C-f> files, <C-b> buffers, q hide) ",
         title_pos = "center",
     })
     vim.wo[draft.win].wrap = true
