@@ -25,9 +25,6 @@ vim.keymap.set('n', '<C-l>', '<C-w>l', { noremap = true, silent = true, desc = '
 -- Save file with Ctrl+S in normal mode
 vim.keymap.set('n', '<C-s>', ':w<CR>', { noremap = true, desc = 'Save file' })
 
--- Save file with Ctrl+S in insert mode and return to normal mode
-vim.keymap.set('i', '<C-s>', '<Esc>:w<CR>', { noremap = true, desc = 'Save file and return to normal mode' })
-
 -- Toggle relative line numbers
 vim.keymap.set('n', '<leader>ur', function()
   vim.opt.relativenumber = not vim.opt.relativenumber:get()
@@ -36,14 +33,9 @@ end, { desc = 'Toggle relative line numbers' })
 -- LSP
 vim.keymap.set('n', 'gd', function() Snacks.picker.lsp_definitions() end, { desc = 'Go to definition' })
 vim.keymap.set('n', 'gD', function() Snacks.picker.lsp_declarations() end, { desc = 'Go to declaration' })
-vim.keymap.set('n', 'gi', function() Snacks.picker.lsp_implementations() end, { desc = 'Go to implementation' })
-vim.keymap.set('n', 'gr', function() Snacks.picker.lsp_references() end, { desc = 'Go to references' })
-vim.keymap.set('n', 'K', function()
-  vim.lsp.buf.hover({ max_width = 80, max_height = 25 })
-end, { desc = 'Hover' })
-vim.keymap.set('n', 'gh', function() Snacks.picker.lsp_definitions() end, { desc = 'Hover definition' })
-vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, { desc = 'Rename' })
-vim.keymap.set('n', '<leader>ca', function() Snacks.picker.lsp_code_actions() end, { desc = 'Code action' })
+vim.keymap.set('n', 'gri', function() Snacks.picker.lsp_implementations() end, { desc = 'Go to implementation' })
+vim.keymap.set('n', 'grr', function() Snacks.picker.lsp_references() end, { desc = 'Go to references' })
+vim.keymap.set('n', 'gh', vim.diagnostic.open_float, { desc = 'Show diagnostic under cursor' })
 vim.keymap.set('n', '<leader>fs', function() Snacks.picker.lsp_symbols() end, { desc = 'Snacks: List symbols' })
 vim.keymap.set('n', '<leader>fm', function() Snacks.picker.lsp_symbols({ filter = { kind = "Function" } }) end, { desc = 'Snacks: List functions' })
 
