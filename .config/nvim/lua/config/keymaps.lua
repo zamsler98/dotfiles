@@ -5,6 +5,18 @@ vim.keymap.set('n', '<leader>fg', function() Snacks.picker.grep() end, { desc = 
 vim.keymap.set('n', '<leader>fb', function() Snacks.picker.buffers() end, { desc = 'Snacks: Buffers' })
 vim.keymap.set('n', '<leader>fh', function() Snacks.picker.help() end, { desc = 'Snacks: Help tags' })
 
+-- Worklist (edited / kept / pinned buffers)
+local worklist = require('config.worklist')
+worklist.setup({ sort = 'joined' }) -- 'joined' or 'recent'
+vim.keymap.set('n', '<leader>fe', worklist.pick, { desc = 'Worklist: open' })
+vim.keymap.set('n', '<leader>fk', function() worklist.keep() end, { desc = 'Worklist: keep current file' })
+vim.keymap.set('n', '<leader>fp', function()
+  local state = worklist.toggle_pin()
+  if state ~= nil then
+    vim.notify(state and 'Worklist: pinned' or 'Worklist: unpinned')
+  end
+end, { desc = 'Worklist: toggle pin' })
+
 vim.keymap.set("n", "j", function()
   return vim.v.count == 0 and "gj" or "j"
 end, { expr = true })
